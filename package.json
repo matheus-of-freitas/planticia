@@ -1,0 +1,19 @@
+{
+  "name": "planticia",
+  "private": true,
+  "packageManager": "pnpm@10.23.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "supabase/functions/*"
+  ],
+  "scripts": {
+    "dev:mobile": "turbo run dev --filter=@planticia/mobile",
+    "dev:functions": "supabase functions serve",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "pnpm": "latest"
+  }
+}
