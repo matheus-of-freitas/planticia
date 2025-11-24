@@ -12,7 +12,7 @@ create extension if not exists "pgcrypto";
 --  PLANTS TABLE
 ------------------------------------------------------------
 create table public.plants (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
 
   name text,
@@ -77,7 +77,7 @@ create policy "Service role insert"
 create type care_type as enum ('water', 'fertilize', 'prune');
 
 create table public.plant_care_schedules (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   plant_id uuid not null references public.plants(id) on delete cascade,
 
@@ -111,7 +111,7 @@ create policy "Allow delete own schedules"
 --  ARTICLES (Educational content)
 ------------------------------------------------------------
 create table public.articles (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
 
   title text not null,
   body_markdown text not null,
