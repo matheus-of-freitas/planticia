@@ -1,39 +1,49 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "../libs/supabaseClient";
+import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
+import { Session, User } from "@supabase/supabase-js";
 
-interface AuthContextValue {
-  session: any | null;
-  user: any | null;
+WebBrowser.maybeCompleteAuthSession();
+
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<any | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
+    async function load() {
       const { data } = await supabase.auth.getSession();
-      setSession(data.session);
+      setSession(data.session ?? null);
       setLoading(false);
-    };
+    }
 
-    init();
+    load();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        console.log("Auth state changed", newSession);
+        setSession(newSession);
+      }
+    );
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
   async function signInWithGoogle() {
+    console.log("Starting Google sign-in...");
+
     const redirectUrl = Linking.createURL("/");
+    console.log("Redirect URL:", redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -44,23 +54,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
-      console.error("Google Sign-In error:", error.message);
+      console.error("Error starting OAuth:", error);
+      return;
+    }
+
+    console.log("Supabase OAuth URL generated:", data);
+
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      console.log("WebBrowser result:", result);
+    } else {
+      console.error("No OAuth URL returned from Supabase.");
     }
   }
 
   async function signOut() {
+    console.log("Signing out...");
     await supabase.auth.signOut();
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        loading,
-        signInWithGoogle,
-        signOut,
-      }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -68,6 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  if (!ctx) throw new Error("useAuth must be inside AuthProvider");
   return ctx;
 }

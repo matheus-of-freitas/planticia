@@ -44,9 +44,11 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
+    "owner": "matheusallein",
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "ubwoxfprrhpcjboyturx"
+        "projectId": "1b3a6cb2-b99b-425d-892f-b7f76a532d57"
       }
     }
   }
