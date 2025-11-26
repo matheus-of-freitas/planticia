@@ -3,11 +3,14 @@ import { View, Text, Image, ActivityIndicator, Button } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { uploadImage } from "../../libs/uploadImage";
 import { identifyPlant } from "../../libs/identifyPlant";
+import { savePlant } from "@/libs/savePlant";
 
 export default function Identify() {
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
   const [result, setResult] = useState<any>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -15,6 +18,8 @@ export default function Identify() {
       if (!imageUri) return;
       try {
         const publicUrl = await uploadImage(imageUri);
+        setUploadedUrl(publicUrl);
+
         const data = await identifyPlant(publicUrl);
         setResult(data);
       } catch (err: any) {
@@ -28,9 +33,36 @@ export default function Identify() {
     process();
   }, [imageUri]);
 
+  async function handleSave() {
+    if (!result || !uploadedUrl) {
+      alert("Nothing to save yet");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const plant = await savePlant({
+        imageUrl: uploadedUrl,
+        species: result.species,
+        commonName: result.commonName,
+      });
+
+      router.replace({
+        pathname: "/(plants)/details",
+        params: { plantId: plant.id },
+      });
+    } catch (err: any) {
+      console.error(err);
+      alert("Error saving plant");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) {
     return (
-      <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
         <Text>Identifying plant...</Text>
       </View>
@@ -39,7 +71,7 @@ export default function Identify() {
 
   if (!result) {
     return (
-      <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>No result found</Text>
         <Button title="Try Again" onPress={() => router.back()} />
       </View>
@@ -55,21 +87,10 @@ export default function Identify() {
       <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 8 }}>
         {result.commonName || "Unknown name"}
       </Text>
-      <Text style={{ marginBottom: 12 }}>
-        Scientific: {result.species}
-      </Text>
-      <Text style={{ marginBottom: 24 }}>
-        Confidence: {(result.confidence * 100).toFixed(1)}%
-      </Text>
+      <Text style={{ marginBottom: 12 }}>Scientific: {result.species}</Text>
+      <Text style={{ marginBottom: 24 }}>Confidence: {(result.confidence * 100).toFixed(1)}%</Text>
 
-      <Button
-        title="Save Plant"
-        onPress={() =>
-          alert(
-            "Saving to DB will be implemented in Phase 6 🤓 (press back for now)"
-          )
-        }
-      />
+      <Button title={saving ? "Saving..." : "Save Plant"} onPress={handleSave} disabled={saving} />
     </View>
   );
 }
