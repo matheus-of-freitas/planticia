@@ -63,6 +63,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data?.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
       console.log("WebBrowser result:", result);
+
+      if (result.type === "success" && result.url) {
+        console.log("Processing auth callback URL:", result.url);
+
+        const url = new URL(result.url);
+        const params = new URLSearchParams(url.hash.substring(1)); // Remove the # and parse
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+
+        if (access_token && refresh_token) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          if (sessionError) {
+            console.error("Error setting session:", sessionError);
+          } else {
+            console.log("Session set successfully:", sessionData);
+          }
+        } else {
+          console.error("Missing tokens in callback URL");
+        }
+      }
     } else {
       console.error("No OAuth URL returned from Supabase.");
     }

@@ -2,7 +2,7 @@ import { Image, View, Button, Text } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { compressImage } from "../../utils/compressImage";
 import { supabase } from "../../libs/supabaseClient";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 export default function Preview() {
   const { uri } = useLocalSearchParams<{ uri: string }>();
@@ -19,14 +19,21 @@ export default function Preview() {
   async function uploadImage() {
     const compressed = await compressImage(uri);
 
-    const file = await FileSystem.readAsStringAsync(compressed, {
+    const base64 = await FileSystem.readAsStringAsync(compressed, {
       encoding: "base64",
     });
+
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
 
     const fileName = `plants/${Date.now()}.jpg`;
     const { error } = await supabase.storage
       .from("plant-images")
-      .upload(fileName, Buffer.from(file, "base64"), {
+      .upload(fileName, byteArray, {
         contentType: "image/jpeg",
       });
 

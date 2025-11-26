@@ -32,17 +32,19 @@ export default function CameraScreen() {
   }
 
   return (
-    <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back">
+    <View style={{ flex: 1 }}>
+      <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
       <View
         style={{
-          flex: 1,
-          justifyContent: "flex-end",
-          marginBottom: 50,
+          position: "absolute",
+          bottom: 50,
+          left: 0,
+          right: 0,
           alignItems: "center",
         }}
       >
         <Button title="Take Photo" onPress={takePhoto} />
       </View>
-    </CameraView>
+    </View>
   );
 }
