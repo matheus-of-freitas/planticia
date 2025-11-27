@@ -12,6 +12,9 @@
     "dev:functions": "supabase functions serve",
     "lint": "turbo run lint"
   },
+  "dependencies": {
+    "@google/genai": "^0.3.1"
+  },
   "devDependencies": {
     "turbo": "latest",
     "pnpm": "latest"

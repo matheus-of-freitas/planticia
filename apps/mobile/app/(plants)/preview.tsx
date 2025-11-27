@@ -1,66 +1,114 @@
-import { Image, View, Button, Text } from "react-native";
+import { Image, View, Button, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { compressImage } from "../../utils/compressImage";
 import { supabase } from "../../libs/supabaseClient";
 import * as FileSystem from "expo-file-system/legacy";
+import { useState } from "react";
 
 export default function Preview() {
   const { uri } = useLocalSearchParams<{ uri: string }>();
   const router = useRouter();
+  const [uploading, setUploading] = useState(false);
 
   if (!uri) {
     return (
-      <View>
-        <Text>No image found.</Text>
+      <View style={styles.centerContainer}>
+        <Text>Nenhuma imagem encontrada.</Text>
       </View>
     );
   }
 
   async function uploadImage() {
-    const compressed = await compressImage(uri);
+    setUploading(true);
+    try {
+      const compressed = await compressImage(uri);
 
-    const base64 = await FileSystem.readAsStringAsync(compressed, {
-      encoding: "base64",
-    });
-
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-
-    const fileName = `plants/${Date.now()}.jpg`;
-    const { error } = await supabase.storage
-      .from("plant-images")
-      .upload(fileName, byteArray, {
-        contentType: "image/jpeg",
+      const base64 = await FileSystem.readAsStringAsync(compressed, {
+        encoding: "base64",
       });
 
-    if (error) {
-      console.error("Upload error:", error);
-      return;
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+
+      const fileName = `plants/${Date.now()}.jpg`;
+      const { error } = await supabase.storage
+        .from("plant-images")
+        .upload(fileName, byteArray, {
+          contentType: "image/jpeg",
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
+        alert("Erro ao fazer upload da imagem");
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("plant-images")
+        .getPublicUrl(fileName);
+
+      const imageUrl = publicUrlData.publicUrl;
+
+      router.push({
+        pathname: "/(plants)/add",
+        params: { imageUrl },
+      });
+    } finally {
+      setUploading(false);
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("plant-images")
-      .getPublicUrl(fileName);
-
-    const imageUrl = publicUrlData.publicUrl;
-
-    router.push({
-      pathname: "/(plants)/add",
-      params: { imageUrl },
-    });
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <Image
         source={{ uri }}
-        style={{ width: "100%", height: "80%", resizeMode: "cover" }}
+        style={styles.image}
       />
-      <Button title="Use this photo" onPress={uploadImage} />
+      <View style={styles.buttonContainer}>
+        {uploading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" />
+            <Text style={styles.loadingText}>Processando imagem...</Text>
+          </View>
+        ) : (
+          <Button title="Usar esta Foto" onPress={uploadImage} />
+        )}
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  image: {
+    flex: 1,
+    width: "100%",
+    resizeMode: "contain",
+  },
+  buttonContainer: {
+    padding: 24,
+    backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    padding: 16,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
+});

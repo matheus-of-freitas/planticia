@@ -1,4 +1,4 @@
-import { View, Text, Button } from "react-native";
+import { View, Text, Button, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 
@@ -8,7 +8,7 @@ export default function AddPlant() {
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      alert("Camera permission is required");
+      alert("Permissão de câmera é necessária");
       return;
     }
 
@@ -40,12 +40,42 @@ export default function AddPlant() {
   }
 
   return (
-    <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
-      <Text style={{ marginBottom: 20 }}>Add a plant</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Adicionar uma Planta</Text>
+      <Text style={styles.subtitle}>
+        Tire uma foto ou escolha uma imagem da galeria para identificar sua planta
+      </Text>
 
-      <Button title="Take a Photo" onPress={takePhoto} />
-      <View style={{ height: 16 }} />
-      <Button title="Choose from Gallery" onPress={pickPhoto} />
+      <View style={styles.buttonContainer}>
+        <Button title="Tirar Foto" onPress={takePhoto} />
+        <Button title="Escolher da Galeria" onPress={pickPhoto} />
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  buttonContainer: {
+    width: "100%",
+    gap: 16,
+  },
+});

@@ -5,6 +5,7 @@
     "experimentalDecorators": false
   },
   "imports": {
-    "supabase": "https://esm.sh/@supabase/supabase-js@2"
+    "supabase": "https://esm.sh/@supabase/supabase-js@2",
+    "@google/genai": "npm:@google/genai@^0.3.0"
   }
 }

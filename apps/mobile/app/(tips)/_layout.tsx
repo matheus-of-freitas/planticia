@@ -1,7 +1,16 @@
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+
+function HeaderRight() {
+  const { signOut } = useAuth();
+  return (
+    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+      <Text style={{ color: "#007AFF", fontSize: 16 }}>Sair</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function PlantsLayout() {
   const { session, loading } = useAuth();
@@ -19,5 +28,14 @@ export default function PlantsLayout() {
     );
   }
 
-  return <Stack />;
+  return (
+    <Stack
+      screenOptions={{
+        headerRight: () => <HeaderRight />,
+      }}
+    >
+      <Stack.Screen name="index" options={{ title: "Dicas de Cuidado" }} />
+      <Stack.Screen name="[id]" options={{ title: "Artigo" }} />
+    </Stack>
+  );
 }

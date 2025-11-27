@@ -3,6 +3,7 @@ import { supabase } from "../libs/supabaseClient";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { Session, User } from "@supabase/supabase-js";
+import { useRouter } from "expo-router";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function load() {
@@ -32,12 +34,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         console.log("Auth state changed", newSession);
+        const previousSession = session;
         setSession(newSession);
+
+        if (previousSession && !newSession) {
+          setTimeout(() => {
+            router.replace("/");
+          }, 100);
+        }
       }
     );
 
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   async function signInWithGoogle() {
     console.log("Starting Google sign-in...");

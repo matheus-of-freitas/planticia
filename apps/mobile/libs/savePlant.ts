@@ -5,13 +5,23 @@ interface SavePlantParams {
   species: string;
   commonName?: string | null;
   confidence?: number;
+  wateringIntervalDays?: number;
+  lightPreference?: string | null;
+  description?: string | null;
 }
 
 /**
  * Inserts a plant for the currently authenticated user.
  * Returns the inserted row.
  */
-export async function savePlant({ imageUrl, species, commonName }: SavePlantParams) {
+export async function savePlant({
+  imageUrl,
+  species,
+  commonName,
+  wateringIntervalDays,
+  lightPreference,
+  description
+}: SavePlantParams) {
   const {
     data: { user },
     error: userError,
@@ -33,9 +43,9 @@ export async function savePlant({ imageUrl, species, commonName }: SavePlantPara
       name: commonName || species,
       scientific_name: species,
       image_url: imageUrl,
-      // watering_interval_days: 3, // you can pass or use DB default
-      // light_preference: null,
-      // description: null,
+      watering_interval_days: wateringIntervalDays || 7,
+      light_preference: lightPreference,
+      description: description,
     })
     .select()
     .single();
