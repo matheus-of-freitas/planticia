@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, Image, Button, ScrollView, Animated } from "react-native";
+import { View, Text, Image, Button, ScrollView, Animated, TextInput, TouchableOpacity, Modal } from "react-native";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { uploadImage } from "../../libs/uploadImage";
 import { identifyPlant } from "../../libs/identifyPlant";
@@ -12,6 +13,9 @@ export default function Identify() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [progress] = useState(new Animated.Value(0));
+  const todayDateString = new Date().toISOString().slice(0, 10);
+  const [lastWateredAt, setLastWateredAt] = useState<string>(todayDateString);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export default function Identify() {
       setSaving(true);
 
       const publicUrl = await uploadImage(imageUri);
+      const lastWateredISO = lastWateredAt ? new Date(lastWateredAt).toISOString() : new Date().toISOString();
 
       const plant = await savePlant({
         imageUrl: publicUrl,
@@ -62,6 +67,7 @@ export default function Identify() {
         wateringIntervalDays: result.wateringIntervalDays,
         lightPreference: result.lightPreference,
         description: result.description,
+        lastWateredAt: lastWateredISO,
       });
 
       router.replace({
@@ -158,6 +164,47 @@ export default function Identify() {
             {result.description}
           </Text>
         )}
+
+        <View style={{ marginBottom: 24, width: "100%", alignItems: "center" }}>
+          <Text style={{ fontWeight: "600", marginBottom: 8, fontSize: 16 }}>Data da última rega:</Text>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#f5f5f5",
+              borderRadius: 10,
+              paddingVertical: 12,
+              paddingHorizontal: 18,
+              marginTop: 4,
+              borderWidth: 1,
+              borderColor: "#e0e0e0",
+              shadowColor: "#000",
+              shadowOpacity: 0.04,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
+          >
+            <Text style={{ fontSize: 16, color: "#333", fontWeight: "500" }}>
+              {new Date(lastWateredAt).toLocaleDateString("pt-BR")}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={new Date(lastWateredAt)}
+              mode="date"
+              display="default"
+              maximumDate={new Date()}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) {
+                  const selected = new Date(selectedDate);
+                  setLastWateredAt(selected.toISOString().slice(0, 10));
+                }
+              }}
+            />
+          )}
+        </View>
 
         <View style={{ gap: 12, width: "100%", paddingHorizontal: 16 }}>
           <Button title={saving ? "Salvando..." : "Salvar Planta"} onPress={handleSave} disabled={saving} />

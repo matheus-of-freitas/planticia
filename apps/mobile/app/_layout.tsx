@@ -1,6 +1,8 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { useEffect, useRef } from "react";
+import * as Notifications from "expo-notifications";
 
 function HeaderRight() {
   const { signOut, session } = useAuth();
@@ -13,6 +15,36 @@ function HeaderRight() {
 }
 
 function RootStack() {
+  const router = useRouter();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
+
+  useEffect(() => {
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log("Notification received:", notification);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const plantId = response.notification.request.content.data.plantId as string;
+      if (plantId) {
+        console.log("Navigating to plant:", plantId);
+        router.push({
+          pathname: "/(plants)/details",
+          params: { plantId: plantId },
+        });
+      }
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, [router]);
+
   return (
     <Stack
       screenOptions={{

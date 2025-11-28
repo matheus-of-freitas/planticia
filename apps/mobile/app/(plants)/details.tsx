@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../libs/supabaseClient";
+import { rescheduleWateringNotification } from "../../libs/notifications";
 
 interface Plant {
   id: string;
@@ -20,18 +21,68 @@ interface Plant {
   scientific_name: string | null;
   image_url: string | null;
   watering_interval_days: number | null;
+  watering_hour?: number | null;
   last_watered_at: string | null;
   light_preference: string | null;
   description: string | null;
 }
 
 export default function PlantDetails() {
+  function isTodayWateringDay() {
+    if (!plant?.last_watered_at || !plant?.watering_interval_days) return false;
+    const lastWatered = new Date(plant.last_watered_at);
+    const nextWatering = new Date(lastWatered);
+    nextWatering.setDate(lastWatered.getDate() + plant.watering_interval_days);
+    const today = new Date();
+    return (
+      nextWatering.getFullYear() === today.getFullYear() &&
+      nextWatering.getMonth() === today.getMonth() &&
+      nextWatering.getDate() === today.getDate()
+    );
+  }
+  async function handleMarkWateredNow() {
+    if (!plant) return;
+    const now = new Date().toISOString();
+    setSaving(true);
+    try {
+      const nextTrigger = new Date(now);
+      nextTrigger.setDate(nextTrigger.getDate() + (plant.watering_interval_days || 7));
+      nextTrigger.setHours(plant.watering_hour || 11, 0, 0, 0);
+
+      const { error } = await supabase
+        .from("plants")
+        .update({ last_watered_at: now })
+        .eq("id", plant.id);
+      if (error) throw error;
+
+      try {
+        await rescheduleWateringNotification(
+          plant.id,
+          plant.name || "",
+          plant.watering_interval_days || 7,
+          now,
+          plant.watering_hour || 11
+        );
+      } catch (notificationError) {
+        console.error("Error rescheduling notification after watering:", notificationError);
+      }
+
+      setPlant((prev) => (prev ? { ...prev, last_watered_at: now } : null));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  }
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingWateringDays, setEditingWateringDays] = useState("");
   const [saving, setSaving] = useState(false);
+  const [wateringHour, setWateringHour] = useState<number>(11);
+  const [editHourModalVisible, setEditHourModalVisible] = useState(false);
+  const [editingHour, setEditingHour] = useState("11");
   const router = useRouter();
 
   useEffect(() => {
@@ -41,22 +92,25 @@ export default function PlantDetails() {
         return;
       }
 
-      const { data, error } = await supabase.from("plants").select("*").eq("id", plantId).single();
-
-      if (error) {
-        console.error("Error loading plant:", error);
+      const { data: plantData, error: plantError } = await supabase
+        .from("plants")
+        .select("*")
+        .eq("id", plantId)
+        .single();
+      if (plantError) {
+        console.error("Error loading plant:", plantError);
         alert("Error loading plant");
       } else {
-        setPlant(data);
+        setPlant(plantData);
+        setWateringHour(plantData.watering_hour || 11);
       }
-
       setLoading(false);
     }
-
     load();
   }, [plantId]);
 
   async function handleUpdateWateringSchedule() {
+    if (!plant) return;
     const days = parseInt(editingWateringDays);
     if (isNaN(days) || days < 1) {
       return;
@@ -64,14 +118,42 @@ export default function PlantDetails() {
 
     setSaving(true);
     try {
+      const lastWatered = plant.last_watered_at || new Date().toISOString();
+      const nextTrigger = new Date(lastWatered);
+      nextTrigger.setDate(nextTrigger.getDate() + days);
+      nextTrigger.setHours(wateringHour, 0, 0, 0);
+
       const { error } = await supabase
         .from("plants")
-        .update({ watering_interval_days: days })
-        .eq("id", plantId);
+        .update({
+          watering_interval_days: days,
+          watering_hour: wateringHour,
+        })
+        .eq("id", plant.id);
 
       if (error) throw error;
 
-      setPlant((prev) => (prev ? { ...prev, watering_interval_days: days } : null));
+      try {
+        await rescheduleWateringNotification(
+          plant.id,
+          plant.name || "Planta",
+          days,
+          lastWatered,
+          wateringHour
+        );
+      } catch (notificationError) {
+        console.error("Error rescheduling notification:", notificationError);
+      }
+
+      setPlant((prev) =>
+        prev
+          ? {
+              ...prev,
+              watering_interval_days: days,
+              watering_hour: wateringHour,
+            }
+          : null
+      );
       setEditModalVisible(false);
     } catch (err) {
       console.error(err);
@@ -84,6 +166,32 @@ export default function PlantDetails() {
     setEditingWateringDays(plant?.watering_interval_days?.toString() || "7");
     setEditModalVisible(true);
   }
+
+  function openEditHourModal() {
+    setEditingHour(wateringHour.toString());
+    setEditHourModalVisible(true);
+  }
+
+  function handleUpdateHour() {
+    const parsed = parseInt(editingHour);
+    if (isNaN(parsed)) return;
+    const hour = Math.max(0, Math.min(23, parsed));
+    setSaving(true);
+    supabase
+      .from("plants")
+      .update({ watering_hour: hour })
+      .eq("id", plant?.id)
+      .then(({ error }) => {
+        if (!error) {
+          setWateringHour(hour);
+          setPlant((prev) => (prev ? { ...prev, watering_hour: hour } : null));
+        }
+        setEditingHour(hour.toString());
+        setEditHourModalVisible(false);
+        setSaving(false);
+      });
+  }
+
 
   if (loading) {
     return (
@@ -145,6 +253,7 @@ export default function PlantDetails() {
             padding: 16,
             borderRadius: 12,
             marginBottom: 16,
+            width: "100%",
           }}>
           <Text
             style={{
@@ -155,27 +264,87 @@ export default function PlantDetails() {
             Informações de Cuidado
           </Text>
 
-          {plant.watering_interval_days != null && (
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-              <Text style={{ fontSize: 16, lineHeight: 24 }}>
-                <Text style={{ fontWeight: "600" }}>Rega:</Text> A cada{" "}
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+            <Text style={{ fontSize: 16, lineHeight: 24 }}>
+              <Text style={{ fontWeight: "600" }}>Rega:</Text> A cada{" "}
+            </Text>
+            <TouchableOpacity
+              onPress={openEditModal}
+              style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                backgroundColor: "#007AFF",
+                borderRadius: 6,
+                marginHorizontal: 4,
+              }}>
+              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
+                {plant.watering_interval_days}
               </Text>
-              <TouchableOpacity
-                onPress={openEditModal}
-                style={{
-                  paddingVertical: 4,
-                  paddingHorizontal: 8,
-                  backgroundColor: "#007AFF",
-                  borderRadius: 6,
-                  marginHorizontal: 4,
-                }}>
-                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
-                  {plant.watering_interval_days}
-                </Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 16, lineHeight: 24 }}>, às </Text>
+            <TouchableOpacity
+              onPress={openEditHourModal}
+              style={{
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                backgroundColor: "#007AFF",
+                borderRadius: 6,
+                marginHorizontal: 4,
+              }}>
+              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
+                {(plant.watering_hour || 11).toString().padStart(2, "0")}
+              </Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 16, lineHeight: 24 }}>h</Text>
+          </View>
+          {/* Modal for editing hour */}
+          <Modal
+            visible={editHourModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setEditHourModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setEditHourModalVisible(false)}>
+              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Editar Horário da Rega</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Defina o horário do lembrete de rega (0-23h)
+                  </Text>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      value={editingHour}
+                      onChangeText={(text) => {
+                        const num = text.replace(/[^0-9]/g, "");
+                        if (num.length > 0) {
+                          const val = Math.max(0, Math.min(23, parseInt(num)));
+                          setEditingHour(val.toString());
+                        } else {
+                          setEditingHour("");
+                        }
+                      }}
+                      keyboardType="numeric"
+                      placeholder="11"
+                      autoFocus
+                      selectTextOnFocus
+                      maxLength={2}
+                    />
+                    <Text style={styles.inputSuffix}>h</Text>
+                  </View>
+
+                  <Button
+                    title={saving ? "Salvando..." : "Salvar"}
+                    onPress={handleUpdateHour}
+                    disabled={saving}
+                  />
+                </View>
               </TouchableOpacity>
-              <Text style={{ fontSize: 16, lineHeight: 24 }}>dias</Text>
-            </View>
-          )}
+            </TouchableOpacity>
+          </Modal>
 
           {plant.light_preference && (
             <Text
@@ -190,14 +359,43 @@ export default function PlantDetails() {
           )}
 
           {plant.last_watered_at && (
-            <Text
+            <View
               style={{
+                flexDirection: "row",
+                alignItems: "center",
                 marginTop: 8,
-                fontSize: 14,
-                color: "#888",
+                justifyContent: "space-between",
               }}>
-              Última rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
-            </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#888",
+                  flex: 1,
+                }}>
+                Última rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
+              </Text>
+              {isTodayWateringDay() && (
+                <TouchableOpacity
+                  onPress={handleMarkWateredNow}
+                  disabled={saving}
+                  style={{
+                    marginLeft: 12,
+                    backgroundColor: saving ? "#007AFF" : "#007AFF",
+                    borderRadius: 8,
+                    padding: 8,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    opacity: saving ? 0.7 : 1,
+                  }}
+                  accessibilityLabel="Reguei agora">
+                  {saving ? (
+                    <ActivityIndicator color="#fff" size={18} />
+                  ) : (
+                    <Text style={{ fontSize: 20 }}>💧</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
 
