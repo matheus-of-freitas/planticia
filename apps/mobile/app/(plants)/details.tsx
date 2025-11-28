@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { View, Text, Image, ActivityIndicator, Button, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  ActivityIndicator,
+  Button,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  StyleSheet,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../libs/supabaseClient";
 
@@ -18,6 +29,9 @@ export default function PlantDetails() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingWateringDays, setEditingWateringDays] = useState("");
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -41,6 +55,35 @@ export default function PlantDetails() {
 
     load();
   }, [plantId]);
+
+  async function handleUpdateWateringSchedule() {
+    const days = parseInt(editingWateringDays);
+    if (isNaN(days) || days < 1) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("plants")
+        .update({ watering_interval_days: days })
+        .eq("id", plantId);
+
+      if (error) throw error;
+
+      setPlant((prev) => (prev ? { ...prev, watering_interval_days: days } : null));
+      setEditModalVisible(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openEditModal() {
+    setEditingWateringDays(plant?.watering_interval_days?.toString() || "7");
+    setEditModalVisible(true);
+  }
 
   if (loading) {
     return (
@@ -109,19 +152,29 @@ export default function PlantDetails() {
               fontWeight: "600",
               marginBottom: 12,
             }}>
-            🌱 Informações de Cuidado
+            Informações de Cuidado
           </Text>
 
           {plant.watering_interval_days != null && (
-            <Text
-              style={{
-                marginBottom: 8,
-                fontSize: 16,
-                lineHeight: 24,
-              }}>
-              💧 <Text style={{ fontWeight: "600" }}>Rega:</Text> A cada{" "}
-              {plant.watering_interval_days} dias
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+              <Text style={{ fontSize: 16, lineHeight: 24 }}>
+                <Text style={{ fontWeight: "600" }}>Rega:</Text> A cada{" "}
+              </Text>
+              <TouchableOpacity
+                onPress={openEditModal}
+                style={{
+                  paddingVertical: 4,
+                  paddingHorizontal: 8,
+                  backgroundColor: "#007AFF",
+                  borderRadius: 6,
+                  marginHorizontal: 4,
+                }}>
+                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
+                  {plant.watering_interval_days}
+                </Text>
+              </TouchableOpacity>
+              <Text style={{ fontSize: 16, lineHeight: 24 }}>dias</Text>
+            </View>
           )}
 
           {plant.light_preference && (
@@ -131,7 +184,7 @@ export default function PlantDetails() {
                 fontSize: 16,
                 lineHeight: 24,
               }}>
-              ☀️ <Text style={{ fontWeight: "600" }}>Luz:</Text>{" "}
+              <Text style={{ fontWeight: "600" }}>Luz:</Text>{" "}
               {plant.light_preference.charAt(0).toUpperCase() + plant.light_preference.slice(1)}
             </Text>
           )}
@@ -143,7 +196,7 @@ export default function PlantDetails() {
                 fontSize: 14,
                 color: "#888",
               }}>
-              Última rega: {new Date(plant.last_watered_at).toLocaleDateString('pt-BR')}
+              Última rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
             </Text>
           )}
         </View>
@@ -176,10 +229,102 @@ export default function PlantDetails() {
         )}
 
         <View style={{ marginTop: 24, gap: 12, width: "100%" }}>
-          <Button title="Diagnosticar Problemas" onPress={() => router.push("/(diagnosis)/diagnose")} />
+          <Button
+            title="Diagnosticar Problemas"
+            onPress={() => router.push("/(diagnosis)/diagnose")}
+          />
           <Button title="Mais Dicas de Cuidado" onPress={() => router.push("/(tips)")} />
         </View>
       </ScrollView>
+
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setEditModalVisible(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Editar Cronograma de Rega</Text>
+              <Text style={styles.modalSubtitle}>
+                Defina a cada quantos dias você quer regar esta planta
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={editingWateringDays}
+                  onChangeText={(text) => {
+                    setEditingWateringDays(text);
+                  }}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  autoFocus
+                  selectTextOnFocus
+                />
+                <Text style={styles.inputSuffix}>dias</Text>
+              </View>
+
+              <Button
+                title={saving ? "Salvando..." : "Salvar"}
+                onPress={handleUpdateWateringSchedule}
+                disabled={saving}
+              />
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 12,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 18,
+    textAlign: "center",
+  },
+  inputSuffix: {
+    fontSize: 16,
+    color: "#666",
+  },
+});
