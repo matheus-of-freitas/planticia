@@ -475,7 +475,12 @@ export default function PlantDetails() {
         <View style={{ marginTop: 24, gap: 12, width: "100%" }}>
           <Button
             title="Diagnosticar Problemas"
-            onPress={() => router.push("/(diagnosis)/diagnose")}
+            onPress={() =>
+              router.push({
+                pathname: "/(diagnosis)/diagnose",
+                params: { plantId: plant.id },
+              })
+            }
           />
           <Button title="Mais Dicas de Cuidado" onPress={() => router.push("/(tips)")} />
           <Button
