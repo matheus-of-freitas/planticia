@@ -10,9 +10,11 @@ import {
   TextInput,
   Modal,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { rescheduleWateringNotification } from "../../libs/notifications";
+import { deletePlant } from "../../libs/deletePlant";
 
 interface Plant {
   id: string;
@@ -84,6 +86,7 @@ export default function PlantDetails() {
   const [wateringHour, setWateringHour] = useState<number>(11);
   const [editHourModalVisible, setEditHourModalVisible] = useState(false);
   const [editingHour, setEditingHour] = useState("11");
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -203,6 +206,36 @@ export default function PlantDetails() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDeletePlant() {
+    if (!plant) return;
+
+    Alert.alert(
+      "Excluir Planta",
+      `Tem certeza que deseja excluir ${plant.name}? Esta ação não pode ser desfeita.`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deletePlant(plant.id);
+              router.replace("/");
+            } catch (err) {
+              console.error(err);
+              Alert.alert("Erro", "Falha ao excluir planta");
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   }
 
 
@@ -445,6 +478,12 @@ export default function PlantDetails() {
             onPress={() => router.push("/(diagnosis)/diagnose")}
           />
           <Button title="Mais Dicas de Cuidado" onPress={() => router.push("/(tips)")} />
+          <Button
+            title={deleting ? "Excluindo..." : "Excluir Planta"}
+            onPress={handleDeletePlant}
+            disabled={deleting}
+            color="#ff4444"
+          />
         </View>
       </ScrollView>
 
