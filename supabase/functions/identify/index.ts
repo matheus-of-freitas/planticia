@@ -21,6 +21,8 @@ serve(async (req: Request) => {
 
     const promptText = `You are a highly specialized botanical Computer Vision model. Your primary function is to perform a detailed morphological analysis of the plant in the image and provide the correct taxonomic identification.
 
+    **ABSOLUTE RULE:** Treat this image as a **NEW, UNCATALOGED** specimen. Do not bias your identification towards previously analyzed plants or common household plants unless the visual evidence is 100% matching.
+
     **STRICT PROCESS:**
     1.  **MORPHOLOGY ANALYSIS:** Analyze the leaf shape (succulent, thick, vertical, pointed), the coloration (patterns, stripes), and the growth pattern.
     2.  **IDENTIFICATION PRIORITY:** Based on the morphological data, determine the most likely scientific name.

@@ -43,40 +43,44 @@ export async function savePlant({
   const wateringDays = wateringIntervalDays || 7;
   const lastWateredDate = lastWateredAt || new Date().toISOString();
 
-  const { data, error } = await supabase
-    .from("plants")
-    .insert({
-      user_id: user.id,
-      name: plantName,
-      scientific_name: species,
-      image_url: imageUrl,
-      watering_interval_days: wateringDays,
-      watering_hour: 11,
-      last_watered_at: lastWateredDate,
-      light_preference: lightPreference,
-      description: description,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error inserting plant:", error);
-    throw error;
+  const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/plant-create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: user.id,
+      imageUrl,
+      species,
+      commonName,
+      wateringIntervalDays: wateringDays,
+      lightPreference,
+      description,
+      lastWateredAt: lastWateredDate,
+    }),
+  });
+  const json = await response.json();
+  if (!response.ok || json.error) {
+    console.error("Error inserting plant via edge function:", json.error);
+    throw new Error(json.error || "Unknown error");
   }
 
+  let notificationId: string | null = null;
   try {
-    const notificationId = await scheduleWateringNotification(
-      data.id,
+    notificationId = await scheduleWateringNotification(
+      json.plant.id,
       plantName,
       wateringDays,
       lastWateredDate,
       11
     );
 
-    await supabase.from("plants").update({ notification_id: notificationId }).eq("id", data.id);
+    await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plantId: json.plant.id, notificationId }),
+    });
   } catch (notificationError) {
-    console.error("Error scheduling notification:", notificationError);
+    console.error("Error scheduling or linking notification:", notificationError);
   }
 
-  return data;
+  return json.plant;
 }

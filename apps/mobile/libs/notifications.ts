@@ -93,6 +93,7 @@ export async function scheduleWateringNotification(
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: secondsUntilNotification,
+      repeats: true,
       channelId: Platform.OS === "android" ? "watering-reminders" : undefined,
     },
   });

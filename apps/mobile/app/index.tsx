@@ -26,20 +26,22 @@ export default function Index() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("plants")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    try {
+      const response = await fetch(`https://ubwoxfprrhpcjboyturx.functions.supabase.co/list-plants?userId=${user.id}`);
+      const json = await response.json();
 
-    if (error) {
+      if (!response.ok || json.error) {
+        console.error("Error loading plants:", json.error);
+        setLoading(false);
+        return;
+      }
+
+      setPlants(json.plants || []);
+    } catch (error) {
       console.error("Error loading plants:", error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setPlants(data || []);
-    setLoading(false);
   }
 
   const onRefresh = useCallback(async () => {

@@ -12,7 +12,6 @@ import {
   StyleSheet,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { supabase } from "../../libs/supabaseClient";
 import { rescheduleWateringNotification } from "../../libs/notifications";
 
 interface Plant {
@@ -49,11 +48,13 @@ export default function PlantDetails() {
       nextTrigger.setDate(nextTrigger.getDate() + (plant.watering_interval_days || 7));
       nextTrigger.setHours(plant.watering_hour || 11, 0, 0, 0);
 
-      const { error } = await supabase
-        .from("plants")
-        .update({ last_watered_at: now })
-        .eq("id", plant.id);
-      if (error) throw error;
+      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plantId: plant.id, updates: { last_watered_at: now } }),
+      });
+      const json = await response.json();
+      if (!response.ok || json.error) throw new Error(json.error || "Failed to update plant");
 
       try {
         await rescheduleWateringNotification(
@@ -91,18 +92,19 @@ export default function PlantDetails() {
         setLoading(false);
         return;
       }
-
-      const { data: plantData, error: plantError } = await supabase
-        .from("plants")
-        .select("*")
-        .eq("id", plantId)
-        .single();
-      if (plantError) {
-        console.error("Error loading plant:", plantError);
+      try {
+        const res = await fetch(`https://ubwoxfprrhpcjboyturx.functions.supabase.co/get-details?plantId=${plantId}`);
+        const json = await res.json();
+        if (!res.ok || json.error) {
+          console.error("Error loading plant:", json.error);
+          alert("Error loading plant");
+        } else {
+          setPlant(json.plant);
+          setWateringHour(json.plant.watering_hour || 11);
+        }
+      } catch (err) {
+        console.error("Error loading plant:", err);
         alert("Error loading plant");
-      } else {
-        setPlant(plantData);
-        setWateringHour(plantData.watering_hour || 11);
       }
       setLoading(false);
     }
@@ -123,15 +125,19 @@ export default function PlantDetails() {
       nextTrigger.setDate(nextTrigger.getDate() + days);
       nextTrigger.setHours(wateringHour, 0, 0, 0);
 
-      const { error } = await supabase
-        .from("plants")
-        .update({
-          watering_interval_days: days,
-          watering_hour: wateringHour,
-        })
-        .eq("id", plant.id);
-
-      if (error) throw error;
+      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plantId: plant.id,
+          updates: {
+            watering_interval_days: days,
+            watering_hour: wateringHour,
+          },
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok || json.error) throw new Error(json.error || "Failed to update plant");
 
       try {
         await rescheduleWateringNotification(
@@ -172,24 +178,31 @@ export default function PlantDetails() {
     setEditHourModalVisible(true);
   }
 
-  function handleUpdateHour() {
+  async function handleUpdateHour() {
     const parsed = parseInt(editingHour);
     if (isNaN(parsed)) return;
     const hour = Math.max(0, Math.min(23, parsed));
     setSaving(true);
-    supabase
-      .from("plants")
-      .update({ watering_hour: hour })
-      .eq("id", plant?.id)
-      .then(({ error }) => {
-        if (!error) {
-          setWateringHour(hour);
-          setPlant((prev) => (prev ? { ...prev, watering_hour: hour } : null));
-        }
-        setEditingHour(hour.toString());
-        setEditHourModalVisible(false);
-        setSaving(false);
+
+    try {
+      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plantId: plant?.id, updates: { watering_hour: hour } }),
       });
+      const json = await response.json();
+
+      if (response.ok && !json.error) {
+        setWateringHour(hour);
+        setPlant((prev) => (prev ? { ...prev, watering_hour: hour } : null));
+      }
+      setEditingHour(hour.toString());
+      setEditHourModalVisible(false);
+    } catch (error) {
+      console.error("Error updating hour:", error);
+    } finally {
+      setSaving(false);
+    }
   }
 
 
