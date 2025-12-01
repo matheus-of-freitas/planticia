@@ -207,7 +207,13 @@ export default function Identify() {
         </View>
 
         <View style={{ gap: 12, width: "100%", paddingHorizontal: 16 }}>
-          <Button title={saving ? "Salvando..." : "Salvar Planta"} onPress={handleSave} disabled={saving} />
+          <Button title={saving ? "Salvando..." : "Salvar na Minha Coleção"} onPress={handleSave} disabled={saving} />
+          <Button
+            title="Cancelar"
+            onPress={() => router.push("/")}
+            color="#666"
+            disabled={saving}
+          />
         </View>
       </ScrollView>
     </View>

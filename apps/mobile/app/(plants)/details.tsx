@@ -482,7 +482,15 @@ export default function PlantDetails() {
               })
             }
           />
-          <Button title="Mais Dicas de Cuidado" onPress={() => router.push("/(tips)")} />
+          <Button
+            title="Mais Dicas de Cuidado"
+            onPress={() =>
+              router.push({
+                pathname: "/(tips)",
+                params: { plantId: plant.id },
+              })
+            }
+          />
           <Button
             title={deleting ? "Excluindo..." : "Excluir Planta"}
             onPress={handleDeletePlant}

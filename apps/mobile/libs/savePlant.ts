@@ -82,5 +82,15 @@ export async function savePlant({
     console.error("Error scheduling or linking notification:", notificationError);
   }
 
+  if (species) {
+    fetch(
+      `https://ubwoxfprrhpcjboyturx.functions.supabase.co/get-care-tips?scientific_name=${encodeURIComponent(
+        species
+      )}&plant_name=${encodeURIComponent(plantName)}`
+    ).catch((err) => {
+      console.log("Background care tips caching failed (non-critical):", err);
+    });
+  }
+
   return json.plant;
 }

@@ -16,7 +16,6 @@ serve(async (req: Request) => {
 
     const mimeType = mime_type || "image/jpeg";
 
-    // Initialize Gemini AI
     const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
     const promptText = `You are a highly specialized botanical Computer Vision model. Your primary function is to perform a detailed morphological analysis of the plant in the image and provide the correct taxonomic identification.
@@ -40,7 +39,6 @@ serve(async (req: Request) => {
       "description": "Descrição dos cuidados..." # In Brazilian Portuguese
     }`;
 
-    // Call Gemini API with base64 image
     const result = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [
@@ -62,7 +60,6 @@ serve(async (req: Request) => {
       },
     });
 
-    // Parse response
     const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || result.text;
     console.log("Gemini response:", textResponse?.substring(0, 200));
 
@@ -71,7 +68,6 @@ serve(async (req: Request) => {
       throw new Error("No identification results from Gemini");
     }
 
-    // Strip markdown code blocks if present
     let jsonText = textResponse.trim();
     if (jsonText.startsWith("```json")) {
       jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
@@ -81,7 +77,6 @@ serve(async (req: Request) => {
 
     const plantData = JSON.parse(jsonText);
 
-    // Validate response
     if (!plantData.species) {
       throw new Error("Invalid response format: Missing species");
     }
