@@ -1,21 +1,31 @@
 import { Stack, useRouter } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
 import { AuthProvider, useAuth } from "../context/AuthContext";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as Notifications from "expo-notifications";
+import * as SplashScreenExpo from "expo-splash-screen";
+import { SplashScreen } from "../components/ui/SplashScreen";
+import { Colors, Typography } from "../constants/theme";
+
+SplashScreenExpo.preventAutoHideAsync();
 
 function HeaderRight() {
   const { signOut, session } = useAuth();
+  const theme = Colors.light;
+
   if (!session) return null;
   return (
     <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <Text style={{ color: "#007AFF", fontSize: 16 }}>Sair</Text>
+      <Text style={{ color: theme.primary, fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.medium }}>
+        Sair
+      </Text>
     </TouchableOpacity>
   );
 }
 
 function RootStack() {
   const router = useRouter();
+  const theme = Colors.light;
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
@@ -49,6 +59,13 @@ function RootStack() {
     <Stack
       screenOptions={{
         headerShown: false,
+        headerStyle: {
+          backgroundColor: theme.background,
+        },
+        headerTintColor: theme.text,
+        headerTitleStyle: {
+          fontWeight: Typography.fontWeight.semibold,
+        },
       }}
     >
       <Stack.Screen
@@ -68,6 +85,36 @@ function RootStack() {
 }
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setAppIsReady(true);
+      }
+    }
+
+    prepare();
+  }, []);
+
+  const onSplashFinish = useCallback(async () => {
+    setShowSplash(false);
+    await SplashScreenExpo.hideAsync();
+  }, []);
+
+  if (!appIsReady) {
+    return null;
+  }
+
+  if (showSplash) {
+    return <SplashScreen onFinish={onSplashFinish} />;
+  }
+
   return (
     <AuthProvider>
       <RootStack />

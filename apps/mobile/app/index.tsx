@@ -1,8 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet } from "react-native";
 import { supabase } from "../libs/supabaseClient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../context/AuthContext";
+import { LoadingScreen } from "../components/ui/LoadingScreen";
+import { EmptyState } from "../components/ui/EmptyState";
+import { Card } from "../components/ui/Card";
+import { FAB } from "../components/ui/FAB";
+import { Colors, Typography, Spacing, BorderRadius } from "../constants/theme";
 
 interface Plant {
   id: string;
@@ -16,6 +21,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const theme = Colors.light;
 
   async function loadPlants(showLoader = true) {
     if (showLoader) setLoading(true);
@@ -74,7 +80,6 @@ export default function Index() {
     }
   }, [session, authLoading, router]);
 
-  // Reload plants when screen comes into focus (e.g., after adding a plant)
   useFocusEffect(
     useCallback(() => {
       if (session) {
@@ -84,32 +89,35 @@ export default function Index() {
   );
 
   if (authLoading || loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-        <Text>Carregando plantas...</Text>
-      </View>
-    );
+    return <LoadingScreen message="Carregando plantas..." />;
   }
 
   if (plants.length === 0) {
     return (
-      <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
-        <Text style={{ marginBottom: 16 }}>Nenhuma planta ainda 🌱</Text>
-        <TouchableOpacity onPress={() => router.push("/(plants)/add")}>
-          <Text style={{ fontSize: 16, color: "blue" }}>Adicione sua primeira planta</Text>
-        </TouchableOpacity>
-      </View>
+      <EmptyState
+        icon="🌱"
+        title="Nenhuma planta ainda"
+        message="Comece sua coleção adicionando sua primeira planta"
+        actionLabel="Adicionar Planta"
+        onAction={() => router.push("/(plants)/add")}
+      />
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}>
       <FlatList
         data={plants}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
+          />
+        }
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() =>
@@ -118,64 +126,71 @@ export default function Index() {
                 params: { plantId: item.id },
               })
             }
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 16,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: "#f8f8f8",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
+            activeOpacity={0.7}
           >
-            {item.image_url && (
-              <Image
-                source={{ uri: item.image_url }}
-                style={{ width: 60, height: 60, borderRadius: 8, marginRight: 12 }}
-              />
-            )}
-            <Text style={{ fontSize: 16, fontWeight: "500" }}>
-              {item.name}
-            </Text>
+            <Card style={styles.plantCard} padding="md">
+              <View style={styles.plantCardContent}>
+                {item.image_url && (
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.plantImage}
+                  />
+                )}
+                <View style={styles.plantInfo}>
+                  <Text style={[styles.plantName, { color: theme.text }]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.plantSubtitle, { color: theme.textSecondary }]}>
+                    Toque para ver detalhes
+                  </Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </View>
+            </Card>
           </TouchableOpacity>
         )}
       />
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push("/(plants)/add")}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      <FAB onPress={() => router.push("/(plants)/add")} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#4CAF50",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+  container: {
+    flex: 1,
   },
-  fabText: {
-    fontSize: 32,
-    color: "#fff",
-    fontWeight: "300",
-    lineHeight: 32,
+  listContent: {
+    padding: Spacing.md,
+    paddingBottom: 100,
+  },
+  plantCard: {
+    marginBottom: Spacing.md,
+  },
+  plantCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  plantImage: {
+    width: 70,
+    height: 70,
+    borderRadius: BorderRadius.md,
+    marginRight: Spacing.md,
+  },
+  plantInfo: {
+    flex: 1,
+  },
+  plantName: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.xs / 2,
+  },
+  plantSubtitle: {
+    fontSize: Typography.fontSize.sm,
+  },
+  chevron: {
+    fontSize: Typography.fontSize['2xl'],
+    color: '#999',
+    fontWeight: Typography.fontWeight.light,
   },
 });
