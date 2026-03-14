@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenAI } from "npm:@google/genai";
+import OpenAI from "openai";
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 serve(async (req: Request) => {
   try {
@@ -18,101 +18,100 @@ serve(async (req: Request) => {
     const plantInfo = plant_name || scientific_name || "planta desconhecida";
     const scientificInfo = scientific_name ? ` (${scientific_name})` : "";
 
-    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-    const promptText = `You are an expert in phytopathology (plant diseases) and ornamental plant management. Your task is to analyze the provided image of the plant "${plantInfo}${scientificInfo}" and perform a detailed diagnosis.
+    const promptText = `Você é um especialista em fitopatologia (doenças de plantas) e manejo de plantas ornamentais. Analise a imagem fornecida da planta "${plantInfo}${scientificInfo}" e faça um diagnóstico detalhado.
 
-    **CONTEXT:**
-    - Plant: ${plantInfo}${scientificInfo}
-    - Location: Brazil (tropical/subtropical climate)
-    - Typical environment: Apartment or house
+**CONTEXTO:**
+- Planta: ${plantInfo}${scientificInfo}
+- Localização: Rio de Janeiro, Brasil
 
-    **REQUIRED ANALYSIS:**
-    1. **VISUAL INSPECTION:** Carefully examine leaves, stems, roots (if visible), flowers (if present) looking for:
-      - Discoloration (yellowing, brown spots, black spots, white spots)
-      - Deformations or wilting
-      - Presence of pests (insects, mites, mealybugs, scale insects)
-      - Signs of fungal diseases (mold, rot, rust)
-      - Signs of water stress (overwatering or underwatering)
-      - Nutritional deficiencies
-      - Burns (sun, fertilizer)
+**CLIMA LOCAL (Rio de Janeiro - Köppen Aw):**
+- Clima tropical de savana com estação seca no inverno
+- Temperatura: 22-30°C no verão (Dez-Mar), 18-24°C no inverno (Jun-Set)
+- Umidade relativa: 70-80% em média (favorece doenças fúngicas)
+- Chuvas intensas de Outubro a Março (estação úmida)
+- Ar salino costeiro pode causar queimaduras foliares
+- Pragas comuns na região: cochonilhas, pulgões, ácaros, mosca-branca, lesmas
+- Doenças fúngicas frequentes: oídio, ferrugem, manchas foliares, podridão por excesso de umidade
+- Considerar que muitas plantas ficam em varandas com exposição ao vento marítimo
 
-    2. **DIAGNOSIS:** Based on visual analysis, determine:
-      - If the plant is healthy or has problems
-      - Which specific problem(s) are affecting the plant
-      - The severity of the problem (mild, moderate, severe)
+**ANÁLISE REQUERIDA:**
+1. **INSPEÇÃO VISUAL:** Examine cuidadosamente folhas, caules, raízes (se visíveis), flores (se presentes) procurando por:
+  - Descoloração (amarelamento, manchas marrons, manchas pretas, manchas brancas)
+  - Deformações ou murcha
+  - Presença de pragas (insetos, ácaros, cochonilhas)
+  - Sinais de doenças fúngicas (mofo, podridão, ferrugem)
+  - Sinais de estresse hídrico (excesso ou falta de água)
+  - Deficiências nutricionais
+  - Queimaduras (sol, fertilizante, sal marítimo)
 
-    3. **TREATMENT:** If there are problems, provide:
-      - Immediate actions to be taken
-      - Specific treatments (preferably organic)
-      - Preventive measures to avoid recurrence
-      - Prognosis (chances of recovery)
+2. **DIAGNÓSTICO:** Baseado na análise visual, determine:
+  - Se a planta está saudável ou tem problemas
+  - Qual(is) problema(s) específico(s) estão afetando a planta
+  - A gravidade do problema (leve, moderada, grave)
 
-    4. **GENERAL CARE:** Even if the plant is healthy, provide preventive maintenance tips.
+3. **TRATAMENTO:** Se houver problemas, forneça:
+  - Ações imediatas a serem tomadas
+  - Tratamentos específicos (preferencialmente orgânicos)
+  - Medidas preventivas para evitar recorrência
+  - Prognóstico (chances de recuperação)
 
-    **IMPORTANT:**
-    - Be specific and practical in recommendations
-    - Use clear and accessible language in Brazilian Portuguese
-    - Prioritize homemade and organic solutions when possible
-    - If you cannot identify the problem with certainty, indicate the most likely possibilities
-    - Consider Brazilian climate and availability of local products
+4. **CUIDADOS GERAIS:** Mesmo se a planta estiver saudável, forneça dicas de manutenção preventiva.
 
-    **ALL TEXT FIELDS MUST BE IN BRAZILIAN PORTUGUESE.**
+**IMPORTANTE:**
+- Seja específico e prático nas recomendações
+- Use linguagem clara e acessível em Português Brasileiro
+- Priorize soluções caseiras e orgânicas quando possível
+- Se não conseguir identificar o problema com certeza, indique as possibilidades mais prováveis
+- Considere o clima do Rio de Janeiro e disponibilidade de produtos locais
 
-    Return your response **STRICTLY** as a JSON object with this **EXACT** structure, and **DO NOT** include any other text, markdown, or commentary:
-    {
-      "isHealthy": true/false,
-      "confidence": 0.95,
-      "diagnosis": "Main diagnosis in Portuguese",
-      "severity": "leve"/"moderada"/"grave"/"nenhuma",
-      "symptoms": ["Symptom 1 in Portuguese", "Symptom 2 in Portuguese"],
-      "causes": ["Probable cause 1 in Portuguese", "Probable cause 2 in Portuguese"],
-      "treatment": {
-        "immediate": ["Immediate action 1 in Portuguese", "Immediate action 2 in Portuguese"],
-        "ongoing": ["Ongoing treatment 1 in Portuguese", "Ongoing treatment 2 in Portuguese"],
-        "prevention": ["Preventive measure 1 in Portuguese", "Preventive measure 2 in Portuguese"]
-      },
-      "prognosis": "Prognosis description in Portuguese",
-      "additionalNotes": "Additional important observations in Portuguese"
-    }`;
+**TODO TEXTO DEVE SER EM PORTUGUÊS BRASILEIRO.**
 
-    const result = await genAI.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
+Responda APENAS com um JSON no formato:
+{
+  "isHealthy": true/false,
+  "confidence": 0.95,
+  "diagnosis": "Diagnóstico principal",
+  "severity": "leve"/"moderada"/"grave"/"nenhuma",
+  "symptoms": ["Sintoma 1", "Sintoma 2"],
+  "causes": ["Causa provável 1", "Causa provável 2"],
+  "treatment": {
+    "immediate": ["Ação imediata 1", "Ação imediata 2"],
+    "ongoing": ["Tratamento contínuo 1", "Tratamento contínuo 2"],
+    "prevention": ["Medida preventiva 1", "Medida preventiva 2"]
+  },
+  "prognosis": "Descrição do prognóstico",
+  "additionalNotes": "Observações adicionais importantes"
+}`;
+
+    const result = await openai.chat.completions.create({
+      model: "gpt-4o",
+      response_format: { type: "json_object" },
+      messages: [
         {
           role: "user",
-          parts: [
-            { text: promptText },
+          content: [
+            { type: "text", text: promptText },
             {
-              inlineData: {
-                mimeType: mimeType,
-                data: image_base64,
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${image_base64}`,
               },
             },
           ],
         },
       ],
-      config: {
-        responseMimeType: "application/json",
-      },
     });
 
-    const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text || result.text;
-    console.log("Gemini diagnosis response:", textResponse?.substring(0, 200));
+    const textResponse = result.choices[0]?.message?.content;
+    console.log("OpenAI diagnosis response:", textResponse?.substring(0, 200));
 
     if (!textResponse) {
-      console.error("Full result:", JSON.stringify(result).substring(0, 500));
-      throw new Error("No diagnosis results from Gemini");
+      throw new Error("No diagnosis results from OpenAI");
     }
 
-    let jsonText = textResponse.trim();
-    if (jsonText.startsWith("```json")) {
-      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-    }
-
-    const diagnosisData = JSON.parse(jsonText);
+    const diagnosisData = JSON.parse(textResponse);
 
     if (typeof diagnosisData.isHealthy === "undefined") {
       throw new Error("Invalid response format: Missing isHealthy field");
