@@ -6,6 +6,7 @@ import { uploadImage } from "../../libs/uploadImage";
 import { identifyPlant } from "../../libs/identifyPlant";
 import { savePlant } from "@/libs/savePlant";
 import * as FileSystem from "expo-file-system/legacy";
+import { compressImage } from "../../utils/compressImage";
 
 export default function Identify() {
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
@@ -30,7 +31,8 @@ export default function Identify() {
       }).start();
 
       try {
-        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        const compressedUri = await compressImage(imageUri);
+        const base64 = await FileSystem.readAsStringAsync(compressedUri, {
           encoding: "base64",
         });
 
@@ -38,8 +40,8 @@ export default function Identify() {
 
         setResult(data);
       } catch (err: any) {
-        console.error(err);
-        alert("Error identifying plant");
+        console.error("Identify error:", err);
+        alert(`Error identifying plant: ${err.message || err}`);
       } finally {
         setLoading(false);
       }
