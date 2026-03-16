@@ -307,7 +307,7 @@ export default function PlantDetails() {
               style={styles.modalOverlay}
               activeOpacity={1}
               onPress={() => setEditHourModalVisible(false)}>
-              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400 }}>
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Editar Horário da Rega</Text>
                   <Text style={styles.modalSubtitle}>
@@ -426,7 +426,7 @@ export default function PlantDetails() {
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setEditModalVisible(false)}>
-          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400 }}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Editar Cronograma de Rega</Text>
               <Text style={styles.modalSubtitle}>
