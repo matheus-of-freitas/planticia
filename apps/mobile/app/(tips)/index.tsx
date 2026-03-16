@@ -12,9 +12,14 @@ import {
   Animated,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../../libs/supabaseClient";
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { getCareTips, CareTips } from "../../libs/getCareTips";
+import { Button } from "../../components/ui/Button";
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+
+const theme = Colors.light;
 
 interface Plant {
   id: string;
@@ -78,9 +83,10 @@ export default function Tips() {
     }
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`,
-        { headers: SUPABASE_HEADERS }
+        `${SUPABASE_FUNCTIONS_URL}/list-plants`,
+        { headers }
       );
       const json = await response.json();
 
@@ -134,7 +140,7 @@ export default function Tips() {
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Carregando plantas...</Text>
         </View>
       );
@@ -143,7 +149,7 @@ export default function Tips() {
     if (plants.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.icon}>🌱</Text>
+          <MaterialCommunityIcons name="sprout" size={64} color={theme.primary} />
           <Text style={styles.emptyTitle}>Nenhuma planta cadastrada</Text>
           <Text style={styles.emptySubtitle}>
             Adicione plantas primeiro para ver dicas de cuidado
@@ -193,10 +199,10 @@ export default function Tips() {
 
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.loadingIcon}>💡</Text>
+        <MaterialCommunityIcons name="lightbulb-on" size={64} color={theme.primary} style={{ marginBottom: Spacing.xl }} />
         <Text style={styles.analyzingText}>Buscando dicas de cuidado...</Text>
         <Text style={styles.analyzingSubtext}>
-          Preparando informações detalhadas para {selectedPlant?.name}
+          Preparando informacoes detalhadas para {selectedPlant?.name}
         </Text>
 
         <View style={styles.progressBarContainer}>
@@ -228,29 +234,29 @@ export default function Tips() {
 
           {careTips.toxicityWarning && (
             <View style={styles.warningBox}>
-              <Text style={styles.warningIcon}>⚠️</Text>
+              <MaterialCommunityIcons name="alert" size={24} color={theme.warning} style={{ marginRight: Spacing.sm }} />
               <Text style={styles.warningText}>{careTips.toxicityWarning}</Text>
             </View>
           )}
 
           {/* Watering */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>💧</Text>
+            <MaterialCommunityIcons name="water" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.sectionTitle}>Rega</Text>
             <Text style={styles.sectionDetail}>
-              <Text style={styles.detailLabel}>Frequência:</Text> {careTips.watering.frequency}
+              <Text style={styles.detailLabel}>Frequencia:</Text> {careTips.watering.frequency}
             </Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Quantidade:</Text> {careTips.watering.amount}
             </Text>
             {careTips.watering.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Light */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>☀️</Text>
+            <MaterialCommunityIcons name="white-balance-sunny" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.sectionTitle}>Luz</Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Necessidades:</Text> {careTips.light.requirements}
@@ -259,13 +265,13 @@ export default function Tips() {
               <Text style={styles.detailLabel}>Posicionamento:</Text> {careTips.light.placement}
             </Text>
             {careTips.light.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Soil */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>🌱</Text>
+            <MaterialCommunityIcons name="sprout" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.sectionTitle}>Solo e Substrato</Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Tipo:</Text> {careTips.soil.type}
@@ -280,28 +286,28 @@ export default function Tips() {
               <Text style={styles.detailLabel}>Replantio:</Text> {careTips.soil.repotting}
             </Text>
             {careTips.soil.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Fertilizer */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>🌿</Text>
-            <Text style={styles.sectionTitle}>Adubação</Text>
+            <MaterialCommunityIcons name="leaf" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
+            <Text style={styles.sectionTitle}>Adubacao</Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Tipo:</Text> {careTips.fertilizer.type}
             </Text>
             <Text style={styles.sectionDetail}>
-              <Text style={styles.detailLabel}>Frequência:</Text> {careTips.fertilizer.frequency}
+              <Text style={styles.detailLabel}>Frequencia:</Text> {careTips.fertilizer.frequency}
             </Text>
             {careTips.fertilizer.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Temperature & Humidity */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>🌡️</Text>
+            <MaterialCommunityIcons name="thermometer" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.sectionTitle}>Temperatura e Umidade</Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Temperatura ideal:</Text> {careTips.temperature.ideal}
@@ -310,14 +316,14 @@ export default function Tips() {
               <Text style={styles.detailLabel}>Umidade:</Text> {careTips.temperature.humidity}
             </Text>
             {careTips.temperature.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Maintenance */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>✂️</Text>
-            <Text style={styles.sectionTitle}>Manutenção</Text>
+            <MaterialCommunityIcons name="content-cut" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
+            <Text style={styles.sectionTitle}>Manutencao</Text>
             <Text style={styles.sectionDetail}>
               <Text style={styles.detailLabel}>Poda:</Text> {careTips.maintenance.pruning}
             </Text>
@@ -325,43 +331,41 @@ export default function Tips() {
               <Text style={styles.detailLabel}>Limpeza:</Text> {careTips.maintenance.cleaning}
             </Text>
             {careTips.maintenance.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>• {tip}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
             ))}
           </View>
 
           {/* Problems */}
           <View style={styles.section}>
-            <Text style={styles.sectionIcon}>🐛</Text>
+            <MaterialCommunityIcons name="bug" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.sectionTitle}>Problemas Comuns</Text>
             <Text style={styles.problemCategory}>Pragas:</Text>
             {careTips.problems.pests.map((pest, index) => (
-              <Text key={index} style={styles.tipItem}>• {pest}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {pest}</Text>
             ))}
-            <Text style={[styles.problemCategory, { marginTop: 12 }]}>Doenças:</Text>
+            <Text style={[styles.problemCategory, { marginTop: Spacing.sm }]}>Doencas:</Text>
             {careTips.problems.diseases.map((disease, index) => (
-              <Text key={index} style={styles.tipItem}>• {disease}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {disease}</Text>
             ))}
-            <Text style={[styles.problemCategory, { marginTop: 12 }]}>Prevenção:</Text>
+            <Text style={[styles.problemCategory, { marginTop: Spacing.sm }]}>Prevencao:</Text>
             {careTips.problems.prevention.map((prevention, index) => (
-              <Text key={index} style={styles.tipItem}>• {prevention}</Text>
+              <Text key={index} style={styles.tipItem}>{"\u2022"} {prevention}</Text>
             ))}
           </View>
 
           {/* Special Tips */}
           {careTips.specialTips.length > 0 && (
             <View style={[styles.section, styles.specialSection]}>
-              <Text style={styles.sectionIcon}>⭐</Text>
+              <MaterialCommunityIcons name="star" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
               <Text style={styles.sectionTitle}>Dicas Especiais</Text>
               {careTips.specialTips.map((tip, index) => (
-                <Text key={index} style={styles.tipItem}>• {tip}</Text>
+                <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
               ))}
             </View>
           )}
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.button} onPress={resetTips}>
-              <Text style={styles.buttonText}>Ver Outra Planta</Text>
-            </TouchableOpacity>
+            <Button title="Ver Outra Planta" onPress={resetTips} variant="primary" fullWidth />
           </View>
         </ScrollView>
       </View>
@@ -374,216 +378,191 @@ export default function Tips() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: Spacing.lg,
   },
   header: {
-    padding: 20,
-    backgroundColor: "#f8f8f8",
+    padding: Spacing.lg,
+    backgroundColor: theme.backgroundSecondary,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: theme.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.fontSize["2xl"],
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
   },
   listContainer: {
-    padding: 16,
+    padding: Spacing.md,
   },
   plantCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: theme.backgroundSecondary,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
   plantImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 16,
+    borderRadius: BorderRadius.md,
+    marginRight: Spacing.md,
   },
   plantInfo: {
     flex: 1,
   },
   plantName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
+    marginBottom: Spacing.xs,
   },
   plantScientific: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     fontStyle: "italic",
-    color: "#666",
-  },
-  icon: {
-    fontSize: 64,
-    marginBottom: 16,
-    textAlign: "center",
+    color: theme.textSecondary,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
     textAlign: "center",
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 24,
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
+    marginBottom: Spacing.lg,
     textAlign: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
-  },
-  loadingIcon: {
-    fontSize: 64,
-    marginBottom: 32,
-    textAlign: "center",
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
   },
   analyzingText: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   analyzingSubtext: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 32,
+    fontSize: Typography.fontSize.sm,
+    color: theme.textSecondary,
+    marginBottom: Spacing.xl,
     textAlign: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: Spacing.xl + Spacing.sm,
   },
   progressBarContainer: {
     width: "80%",
     height: 6,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 3,
+    backgroundColor: theme.backgroundTertiary,
+    borderRadius: BorderRadius.sm,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 3,
+    backgroundColor: theme.primaryLight,
+    borderRadius: BorderRadius.sm,
   },
   analyzingNote: {
-    fontSize: 12,
-    color: "#999",
+    fontSize: Typography.fontSize.xs,
+    color: theme.textTertiary,
     textAlign: "center",
     fontStyle: "italic",
   },
   tipsContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   tipsHeader: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   tipsTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: Typography.fontSize["3xl"] - 2,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   tipsScientific: {
-    fontSize: 18,
+    fontSize: Typography.fontSize.lg,
     fontStyle: "italic",
-    color: "#666",
+    color: theme.textSecondary,
   },
   warningBox: {
     backgroundColor: "#fff3cd",
-    padding: 16,
-    borderRadius: 12,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
-    borderLeftColor: "#ff9800",
-    marginBottom: 24,
+    borderLeftColor: theme.warning,
+    marginBottom: Spacing.lg,
     flexDirection: "row",
     alignItems: "center",
   },
-  warningIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
   warningText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     color: "#856404",
-    fontWeight: "600",
+    fontWeight: Typography.fontWeight.semibold,
   },
   section: {
-    backgroundColor: "#f8f8f8",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: theme.backgroundSecondary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
   },
   specialSection: {
     backgroundColor: "#f0f9ff",
     borderLeftWidth: 4,
-    borderLeftColor: "#2196F3",
-  },
-  sectionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+    borderLeftColor: theme.info,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
   },
   sectionDetail: {
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 8,
-    color: "#333",
+    fontSize: Typography.fontSize.base - 1,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    marginBottom: Spacing.sm,
+    color: theme.text,
   },
   detailLabel: {
-    fontWeight: "600",
-    color: "#000",
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
   },
   tipItem: {
-    fontSize: 15,
-    lineHeight: 24,
-    marginTop: 4,
-    color: "#555",
+    fontSize: Typography.fontSize.base - 1,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    marginTop: Spacing.xs,
+    color: theme.textSecondary,
   },
   problemCategory: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 8,
-    marginBottom: 4,
-    color: "#333",
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+    color: theme.text,
   },
   actionButtons: {
-    marginTop: 24,
-  },
-  button: {
-    backgroundColor: "#4CAF50",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    marginTop: Spacing.lg,
   },
 });

@@ -4,7 +4,6 @@ import {
   Text,
   Image,
   ActivityIndicator,
-  Button,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -13,9 +12,13 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { rescheduleWateringNotification } from "../../libs/notifications";
 import { deletePlant } from "../../libs/deletePlant";
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
+import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
 
 interface Plant {
   id: string;
@@ -53,7 +56,7 @@ export default function PlantDetails() {
 
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: SUPABASE_HEADERS,
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ plantId: plant.id, updates: { last_watered_at: now } }),
       });
       const json = await response.json();
@@ -98,7 +101,7 @@ export default function PlantDetails() {
       }
       try {
         const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/get-details?plantId=${plantId}`, {
-          headers: SUPABASE_HEADERS,
+          headers: await getAuthHeaders(),
         });
         const json = await res.json();
         if (!res.ok || json.error) {
@@ -133,7 +136,7 @@ export default function PlantDetails() {
 
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: SUPABASE_HEADERS,
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           plantId: plant.id,
           updates: {
@@ -193,7 +196,7 @@ export default function PlantDetails() {
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: SUPABASE_HEADERS,
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ plantId: plant?.id, updates: { watering_hour: hour } }),
       });
       const json = await response.json();
@@ -244,109 +247,57 @@ export default function PlantDetails() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator />
-        <Text>Carregando planta...</Text>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator color={theme.primary} size="large" />
+        <Text style={styles.loadingText}>Carregando planta...</Text>
       </View>
     );
   }
 
   if (!plant) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Planta não encontrada</Text>
-        <Button title="Voltar" onPress={() => router.back()} />
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Planta não encontrada</Text>
+        <Button title="Voltar" onPress={() => router.back()} variant="outline" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <ScrollView contentContainerStyle={{ alignItems: "center", padding: 16, paddingBottom: 100 }}>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {plant.image_url ? (
           <Image
             source={{ uri: plant.image_url }}
-            style={{
-              width: "100%",
-              height: 300,
-              borderRadius: 12,
-              marginBottom: 24,
-            }}
+            style={styles.plantImage}
             resizeMode="cover"
           />
         ) : null}
 
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: "bold",
-            marginBottom: 8,
-            textAlign: "center",
-          }}>
-          {plant.name}
-        </Text>
-        <Text
-          style={{
-            fontStyle: "italic",
-            marginBottom: 24,
-            textAlign: "center",
-            color: "#666",
-            fontSize: 16,
-          }}>
-          {plant.scientific_name}
-        </Text>
+        <Text style={styles.plantName}>{plant.name}</Text>
+        <Text style={styles.scientificName}>{plant.scientific_name}</Text>
 
-        <View
-          style={{
-            backgroundColor: "#f5f5f5",
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            width: "100%",
-          }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "600",
-              marginBottom: 12,
-            }}>
-            Informações de Cuidado
-          </Text>
+        <Card style={styles.careCard}>
+          <Text style={styles.sectionTitle}>Informações de Cuidado</Text>
 
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-            <Text style={{ fontSize: 16, lineHeight: 24 }}>
-              <Text style={{ fontWeight: "600" }}>Rega:</Text> A cada{" "}
+          <View style={styles.wateringRow}>
+            <Text style={styles.infoText}>
+              <Text style={styles.infoLabel}>Rega:</Text> A cada{" "}
             </Text>
-            <TouchableOpacity
-              onPress={openEditModal}
-              style={{
-                paddingVertical: 4,
-                paddingHorizontal: 8,
-                backgroundColor: "#007AFF",
-                borderRadius: 6,
-                marginHorizontal: 4,
-              }}>
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
+            <TouchableOpacity onPress={openEditModal} style={styles.pillButton}>
+              <Text style={styles.pillButtonText}>
                 {plant.watering_interval_days}
               </Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 16, lineHeight: 24 }}>, às </Text>
-            <TouchableOpacity
-              onPress={openEditHourModal}
-              style={{
-                paddingVertical: 4,
-                paddingHorizontal: 8,
-                backgroundColor: "#007AFF",
-                borderRadius: 6,
-                marginHorizontal: 4,
-              }}>
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600", lineHeight: 24 }}>
+            <Text style={styles.infoText}>, às </Text>
+            <TouchableOpacity onPress={openEditHourModal} style={styles.pillButton}>
+              <Text style={styles.pillButtonText}>
                 {(plant.watering_hour || 11).toString().padStart(2, "0")}
               </Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 16, lineHeight: 24 }}>h</Text>
+            <Text style={styles.infoText}>h</Text>
           </View>
-          {/* Modal for editing hour */}
+
           <Modal
             visible={editHourModalVisible}
             transparent
@@ -389,6 +340,7 @@ export default function PlantDetails() {
                     title={saving ? "Salvando..." : "Salvar"}
                     onPress={handleUpdateHour}
                     disabled={saving}
+                    fullWidth
                   />
                 </View>
               </TouchableOpacity>
@@ -396,86 +348,42 @@ export default function PlantDetails() {
           </Modal>
 
           {plant.light_preference && (
-            <Text
-              style={{
-                marginBottom: 8,
-                fontSize: 16,
-                lineHeight: 24,
-              }}>
-              <Text style={{ fontWeight: "600" }}>Luz:</Text>{" "}
+            <Text style={styles.infoText}>
+              <Text style={styles.infoLabel}>Luz:</Text>{" "}
               {plant.light_preference.charAt(0).toUpperCase() + plant.light_preference.slice(1)}
             </Text>
           )}
 
           {plant.last_watered_at && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 8,
-                justifyContent: "space-between",
-              }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: "#888",
-                  flex: 1,
-                }}>
+            <View style={styles.lastWateredRow}>
+              <Text style={styles.lastWateredText}>
                 Última rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
               </Text>
               {isTodayWateringDay() && (
                 <TouchableOpacity
                   onPress={handleMarkWateredNow}
                   disabled={saving}
-                  style={{
-                    marginLeft: 12,
-                    backgroundColor: saving ? "#007AFF" : "#007AFF",
-                    borderRadius: 8,
-                    padding: 8,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    opacity: saving ? 0.7 : 1,
-                  }}
+                  style={[styles.waterButton, saving && styles.waterButtonDisabled]}
                   accessibilityLabel="Reguei agora">
                   {saving ? (
                     <ActivityIndicator color="#fff" size={18} />
                   ) : (
-                    <Text style={{ fontSize: 20 }}>💧</Text>
+                    <MaterialCommunityIcons name="water" size={20} color="#fff" />
                   )}
                 </TouchableOpacity>
               )}
             </View>
           )}
-        </View>
+        </Card>
 
         {plant.description && (
-          <View
-            style={{
-              backgroundColor: "#f0f9ff",
-              padding: 16,
-              borderRadius: 12,
-              marginBottom: 16,
-            }}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "600",
-                marginBottom: 8,
-              }}>
-              Dicas de Cuidado
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                lineHeight: 22,
-                color: "#333",
-              }}>
-              {plant.description}
-            </Text>
-          </View>
+          <Card style={styles.descriptionCard}>
+            <Text style={styles.sectionTitle}>Dicas de Cuidado</Text>
+            <Text style={styles.descriptionText}>{plant.description}</Text>
+          </Card>
         )}
 
-        <View style={{ marginTop: 24, gap: 12, width: "100%" }}>
+        <View style={styles.actionsContainer}>
           <Button
             title="Diagnosticar Problemas"
             onPress={() =>
@@ -484,6 +392,8 @@ export default function PlantDetails() {
                 params: { plantId: plant.id },
               })
             }
+            variant="primary"
+            fullWidth
           />
           <Button
             title="Mais Dicas de Cuidado"
@@ -493,12 +403,16 @@ export default function PlantDetails() {
                 params: { plantId: plant.id },
               })
             }
+            variant="outline"
+            fullWidth
           />
           <Button
             title={deleting ? "Excluindo..." : "Excluir Planta"}
             onPress={handleDeletePlant}
             disabled={deleting}
-            color="#ff4444"
+            variant="ghost"
+            fullWidth
+            textStyle={styles.deleteButtonText}
           />
         </View>
       </ScrollView>
@@ -538,6 +452,7 @@ export default function PlantDetails() {
                 title={saving ? "Salvando..." : "Salvar"}
                 onPress={handleUpdateWateringSchedule}
                 disabled={saving}
+                fullWidth
               />
             </View>
           </TouchableOpacity>
@@ -547,50 +462,193 @@ export default function PlantDetails() {
   );
 }
 
+const theme = Colors.light;
+
 const styles = StyleSheet.create({
-  modalOverlay: {
+  // Layout
+  container: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: theme.background,
+    padding: Spacing.md,
+  },
+  scrollContent: {
+    alignItems: "center",
+    padding: Spacing.md,
+    paddingBottom: 100,
+  },
+  centerContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    backgroundColor: theme.background,
+    gap: Spacing.md,
+  },
+
+  // Loading & Error
+  loadingText: {
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
+    marginTop: Spacing.sm,
+  },
+  errorText: {
+    fontSize: Typography.fontSize.lg,
+    color: theme.textSecondary,
+    marginBottom: Spacing.md,
+  },
+
+  // Plant header
+  plantImage: {
+    width: "100%",
+    height: 300,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
+  },
+  plantName: {
+    fontSize: Typography.fontSize["2xl"],
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+  },
+  scientificName: {
+    fontStyle: "italic",
+    marginBottom: Spacing.lg,
+    textAlign: "center",
+    color: theme.textSecondary,
+    fontSize: Typography.fontSize.base,
+  },
+
+  // Care info card
+  careCard: {
+    marginBottom: Spacing.md,
+    width: "100%",
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
+    marginBottom: Spacing.md,
+  },
+  wateringRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  infoText: {
+    fontSize: Typography.fontSize.base,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+    color: theme.text,
+    marginBottom: Spacing.sm,
+  },
+  infoLabel: {
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  pillButton: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    backgroundColor: theme.primary,
+    borderRadius: BorderRadius.md,
+    marginHorizontal: Spacing.xs,
+  },
+  pillButtonText: {
+    color: "#fff",
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
+  },
+
+  // Last watered row
+  lastWateredRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing.sm,
+    justifyContent: "space-between",
+  },
+  lastWateredText: {
+    fontSize: Typography.fontSize.sm,
+    color: theme.textTertiary,
+    flex: 1,
+  },
+  waterButton: {
+    marginLeft: Spacing.md,
+    backgroundColor: theme.primary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  waterButtonDisabled: {
+    opacity: 0.7,
+  },
+
+  // Description card
+  descriptionCard: {
+    marginBottom: Spacing.md,
+    width: "100%",
+  },
+  descriptionText: {
+    fontSize: Typography.fontSize.sm + 1,
+    lineHeight: 22,
+    color: theme.textSecondary,
+  },
+
+  // Actions
+  actionsContainer: {
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+    width: "100%",
+  },
+  deleteButtonText: {
+    color: theme.error,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: theme.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: theme.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
     width: "100%",
     maxWidth: 400,
+    ...Shadows.lg,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 24,
+    fontSize: Typography.fontSize.sm,
+    color: theme.textSecondary,
+    marginBottom: Spacing.lg,
     textAlign: "center",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
+    borderColor: theme.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    fontSize: Typography.fontSize.lg,
     textAlign: "center",
+    color: theme.text,
   },
   inputSuffix: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
   },
 });

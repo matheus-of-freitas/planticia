@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from "../libs/supabaseClient";
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../libs/config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../libs/config";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
@@ -34,8 +35,9 @@ export default function Index() {
     }
 
     try {
-      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`, {
-        headers: SUPABASE_HEADERS,
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-plants`, {
+        headers,
       });
       const json = await response.json();
 
@@ -112,6 +114,14 @@ export default function Index() {
       <FlatList
         data={plants}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Minhas Plantas</Text>
+            <Text style={[styles.headerCount, { color: theme.textSecondary }]}>
+              {plants.length} {plants.length === 1 ? 'planta' : 'plantas'}
+            </Text>
+          </View>
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -133,11 +143,15 @@ export default function Index() {
           >
             <Card style={styles.plantCard} padding="md">
               <View style={styles.plantCardContent}>
-                {item.image_url && (
+                {item.image_url ? (
                   <Image
                     source={{ uri: item.image_url }}
                     style={styles.plantImage}
                   />
+                ) : (
+                  <View style={[styles.plantImage, styles.plantImagePlaceholder, { backgroundColor: theme.backgroundTertiary }]}>
+                    <MaterialCommunityIcons name="flower" size={32} color={theme.textTertiary} />
+                  </View>
                 )}
                 <View style={styles.plantInfo}>
                   <Text style={[styles.plantName, { color: theme.text }]}>
@@ -147,7 +161,7 @@ export default function Index() {
                     Toque para ver detalhes
                   </Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <MaterialCommunityIcons name="chevron-right" size={24} color={theme.textTertiary} />
               </View>
             </Card>
           </TouchableOpacity>
@@ -175,10 +189,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   plantImage: {
-    width: 70,
-    height: 70,
-    borderRadius: BorderRadius.md,
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.lg,
     marginRight: Spacing.md,
+  },
+  plantImagePlaceholder: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   plantInfo: {
     flex: 1,
@@ -191,9 +209,15 @@ const styles = StyleSheet.create({
   plantSubtitle: {
     fontSize: Typography.fontSize.sm,
   },
-  chevron: {
+  header: {
+    marginBottom: Spacing.md,
+  },
+  headerTitle: {
     fontSize: Typography.fontSize['2xl'],
-    color: '#999',
-    fontWeight: Typography.fontWeight.light,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  headerCount: {
+    fontSize: Typography.fontSize.sm,
+    marginTop: Spacing.xs / 2,
   },
 });

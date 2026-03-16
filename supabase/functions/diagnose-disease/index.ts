@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "openai";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 serve(async (req: Request) => {
   try {
+    const auth = await getAuthenticatedUser(req);
+    if ("error" in auth) return auth.error;
+
     const { image_base64, mime_type, plant_name, scientific_name } = await req.json();
 
     if (!image_base64) {

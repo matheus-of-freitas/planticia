@@ -1,4 +1,4 @@
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "./config";
 
 interface DiagnosePlantParams {
   imageBase64: string;
@@ -34,11 +34,12 @@ export async function diagnosePlant({
   plantName,
   scientificName,
 }: DiagnosePlantParams): Promise<DiagnosisResult> {
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${SUPABASE_FUNCTIONS_URL}/diagnose-disease`,
     {
       method: "POST",
-      headers: SUPABASE_HEADERS,
+      headers,
       body: JSON.stringify({
         image_base64: imageBase64,
         mime_type: mimeType,

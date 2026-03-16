@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { scheduleWateringNotification } from "./notifications";
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "./config";
 
 interface SavePlantParams {
   imageUrl: string;
@@ -41,14 +41,14 @@ export async function savePlant({
   }
 
   const plantName = commonName || species;
-  const wateringDays = wateringIntervalDays || 7;
+  const wateringDays = wateringIntervalDays || 3;
   const lastWateredDate = lastWateredAt || new Date().toISOString();
 
+  const headers = await getAuthHeaders();
   const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/plant-create`, {
     method: "POST",
-    headers: SUPABASE_HEADERS,
+    headers,
     body: JSON.stringify({
-      userId: user.id,
       imageUrl,
       species,
       commonName,
@@ -76,7 +76,7 @@ export async function savePlant({
 
     await fetch(`${SUPABASE_FUNCTIONS_URL}/update-notification`, {
       method: "POST",
-      headers: SUPABASE_HEADERS,
+      headers,
       body: JSON.stringify({ plantId: json.plant.id, notificationId }),
     });
   } catch (notificationError) {
@@ -88,7 +88,7 @@ export async function savePlant({
       `${SUPABASE_FUNCTIONS_URL}/get-care-tips?scientific_name=${encodeURIComponent(
         species
       )}&plant_name=${encodeURIComponent(plantName)}`,
-      { headers: SUPABASE_HEADERS }
+      { headers }
     ).catch((err) => {
       console.log("Background care tips caching failed (non-critical):", err);
     });

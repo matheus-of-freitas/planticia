@@ -1,11 +1,12 @@
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "./config";
 
 export async function identifyPlant(imageBase64: string, mimeType: string) {
+  const headers = await getAuthHeaders();
   const res = await fetch(
     `${SUPABASE_FUNCTIONS_URL}/identify`,
     {
       method: "POST",
-      headers: SUPABASE_HEADERS,
+      headers,
       body: JSON.stringify({
         image_base64: imageBase64,
         mime_type: mimeType

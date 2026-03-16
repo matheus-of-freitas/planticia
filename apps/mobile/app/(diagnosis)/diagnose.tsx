@@ -3,7 +3,6 @@ import {
   Text,
   View,
   StyleSheet,
-  Button,
   ScrollView,
   Image,
   ActivityIndicator,
@@ -15,9 +14,14 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../../libs/supabaseClient";
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { diagnosePlant } from "../../libs/diagnosePlant";
+import { Button } from "../../components/ui/Button";
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+
+const theme = Colors.light;
 
 interface Plant {
   id: string;
@@ -78,9 +82,10 @@ export default function Diagnose() {
     }
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`,
-        { headers: SUPABASE_HEADERS }
+        `${SUPABASE_FUNCTIONS_URL}/list-plants`,
+        { headers }
       );
       const json = await response.json();
 
@@ -105,7 +110,7 @@ export default function Diagnose() {
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão Necessária", "Permissão de câmera é necessária para tirar fotos");
+      Alert.alert("Permissao Necessaria", "Permissao de camera e necessaria para tirar fotos");
       return;
     }
 
@@ -178,7 +183,7 @@ export default function Diagnose() {
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Carregando plantas...</Text>
         </View>
       );
@@ -187,12 +192,16 @@ export default function Diagnose() {
     if (plants.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.icon}>🌱</Text>
+          <MaterialCommunityIcons name="sprout" size={64} color={theme.primary} />
           <Text style={styles.emptyTitle}>Nenhuma planta cadastrada</Text>
           <Text style={styles.emptySubtitle}>
-            Adicione plantas primeiro para diagnosticá-las
+            Adicione plantas primeiro para diagnostica-las
           </Text>
-          <Button title="Adicionar Planta" onPress={() => router.push("/(plants)/add")} />
+          <Button
+            title="Adicionar Planta"
+            onPress={() => router.push("/(plants)/add")}
+            variant="primary"
+          />
         </View>
       );
     }
@@ -202,7 +211,7 @@ export default function Diagnose() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Selecione a Planta</Text>
           <Text style={styles.headerSubtitle}>
-            Qual planta você gostaria de diagnosticar?
+            Qual planta voce gostaria de diagnosticar?
           </Text>
         </View>
 
@@ -239,10 +248,10 @@ export default function Diagnose() {
 
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.analyzingIcon}>🔬</Text>
+          <MaterialCommunityIcons name="microscope" size={64} color={theme.primary} style={{ marginBottom: Spacing.xl }} />
           <Text style={styles.analyzingText}>Diagnosticando planta...</Text>
           <Text style={styles.analyzingSubtext}>
-            Usando inteligência artificial para análise
+            Usando inteligencia artificial para analise
           </Text>
 
           <View style={styles.progressBarContainer}>
@@ -266,24 +275,24 @@ export default function Diagnose() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Diagnosticar: {selectedPlant?.name}</Text>
           <Text style={styles.headerSubtitle}>
-            Tire ou escolha uma foto da área problemática
+            Tire ou escolha uma foto da area problematica
           </Text>
         </View>
 
         <View style={styles.captureContainer}>
-          <Text style={styles.icon}>🔬</Text>
+          <MaterialCommunityIcons name="microscope" size={64} color={theme.primary} style={{ marginBottom: Spacing.md }} />
           <Text style={styles.captureTitle}>Capturar Imagem</Text>
           <Text style={styles.captureDescription}>
-            Para um diagnóstico preciso, fotografe de perto a área afetada da planta
-            (folhas, caule, raízes visíveis, etc.)
+            Para um diagnostico preciso, fotografe de perto a area afetada da planta
+            (folhas, caule, raizes visiveis, etc.)
           </Text>
 
           <View style={styles.buttonGroup}>
-            <Button title="Tirar Foto" onPress={takePhoto} />
-            <View style={{ height: 12 }} />
-            <Button title="Escolher da Galeria" onPress={pickPhoto} />
-            <View style={{ height: 12 }} />
-            <Button title="Voltar" onPress={() => setStep("select")} color="#666" />
+            <Button title="Tirar Foto" onPress={takePhoto} variant="primary" fullWidth />
+            <View style={{ height: Spacing.sm }} />
+            <Button title="Escolher da Galeria" onPress={pickPhoto} variant="outline" fullWidth />
+            <View style={{ height: Spacing.sm }} />
+            <Button title="Voltar" onPress={() => setStep("select")} variant="ghost" fullWidth />
           </View>
         </View>
       </View>
@@ -291,13 +300,12 @@ export default function Diagnose() {
   }
 
   if (step === "result" && diagnosis) {
-    const healthIcon = diagnosis.isHealthy ? "✅" : "⚠️";
     const severityColor =
       diagnosis.severity === "grave"
-        ? "#d32f2f"
+        ? theme.error
         : diagnosis.severity === "moderada"
-        ? "#ff9800"
-        : "#4caf50";
+        ? theme.warning
+        : theme.success;
 
     return (
       <View style={styles.container}>
@@ -307,7 +315,11 @@ export default function Diagnose() {
           )}
 
           <View style={styles.resultHeader}>
-            <Text style={styles.resultIcon}>{healthIcon}</Text>
+            {diagnosis.isHealthy ? (
+              <MaterialCommunityIcons name="check-circle" size={48} color={theme.success} style={{ marginBottom: Spacing.sm }} />
+            ) : (
+              <MaterialCommunityIcons name="alert-circle" size={48} color={theme.warning} style={{ marginBottom: Spacing.sm }} />
+            )}
             <Text style={styles.resultTitle}>{diagnosis.diagnosis}</Text>
             <Text style={styles.resultPlant}>
               {selectedPlant?.name}
@@ -315,7 +327,7 @@ export default function Diagnose() {
             </Text>
             <View style={styles.metaContainer}>
               <Text style={styles.confidenceText}>
-                Confiança: {Math.round(diagnosis.confidence * 100)}%
+                Confianca: {Math.round(diagnosis.confidence * 100)}%
               </Text>
               {diagnosis.severity !== "nenhuma" && (
                 <Text style={[styles.severityBadge, { backgroundColor: severityColor }]}>
@@ -330,7 +342,7 @@ export default function Diagnose() {
               <Text style={styles.sectionTitle}>Sintomas Identificados</Text>
               {diagnosis.symptoms.map((symptom, index) => (
                 <Text key={index} style={styles.listItem}>
-                  • {symptom}
+                  {"\u2022"} {symptom}
                 </Text>
               ))}
             </View>
@@ -338,10 +350,10 @@ export default function Diagnose() {
 
           {diagnosis.causes.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Causas Prováveis</Text>
+              <Text style={styles.sectionTitle}>Causas Provaveis</Text>
               {diagnosis.causes.map((cause, index) => (
                 <Text key={index} style={styles.listItem}>
-                  • {cause}
+                  {"\u2022"} {cause}
                 </Text>
               ))}
             </View>
@@ -349,7 +361,10 @@ export default function Diagnose() {
 
           {diagnosis.treatment.immediate.length > 0 && (
             <View style={[styles.section, styles.treatmentSection]}>
-              <Text style={styles.sectionTitle}>🚨 Ações Imediatas</Text>
+              <View style={styles.sectionTitleRow}>
+                <MaterialCommunityIcons name="alert" size={20} color={theme.warning} style={{ marginRight: Spacing.sm }} />
+                <Text style={styles.sectionTitle}>Acoes Imediatas</Text>
+              </View>
               {diagnosis.treatment.immediate.map((action, index) => (
                 <Text key={index} style={styles.listItem}>
                   {index + 1}. {action}
@@ -360,10 +375,13 @@ export default function Diagnose() {
 
           {diagnosis.treatment.ongoing.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📋 Tratamento Contínuo</Text>
+              <View style={styles.sectionTitleRow}>
+                <MaterialCommunityIcons name="clipboard-text" size={20} color={theme.primary} style={{ marginRight: Spacing.sm }} />
+                <Text style={styles.sectionTitle}>Tratamento Continuo</Text>
+              </View>
               {diagnosis.treatment.ongoing.map((treatment, index) => (
                 <Text key={index} style={styles.listItem}>
-                  • {treatment}
+                  {"\u2022"} {treatment}
                 </Text>
               ))}
             </View>
@@ -371,30 +389,33 @@ export default function Diagnose() {
 
           {diagnosis.treatment.prevention.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🛡️ Prevenção</Text>
+              <View style={styles.sectionTitleRow}>
+                <MaterialCommunityIcons name="shield-check" size={20} color={theme.primary} style={{ marginRight: Spacing.sm }} />
+                <Text style={styles.sectionTitle}>Prevencao</Text>
+              </View>
               {diagnosis.treatment.prevention.map((prevention, index) => (
                 <Text key={index} style={styles.listItem}>
-                  • {prevention}
+                  {"\u2022"} {prevention}
                 </Text>
               ))}
             </View>
           )}
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Prognóstico</Text>
+            <Text style={styles.sectionTitle}>Prognostico</Text>
             <Text style={styles.prognosisText}>{diagnosis.prognosis}</Text>
           </View>
 
           {diagnosis.additionalNotes && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Observações Adicionais</Text>
+              <Text style={styles.sectionTitle}>Observacoes Adicionais</Text>
               <Text style={styles.notesText}>{diagnosis.additionalNotes}</Text>
             </View>
           )}
 
           <View style={styles.actionButtons}>
-            <Button title="Novo Diagnóstico" onPress={resetDiagnosis} />
-            <View style={{ height: 12 }} />
+            <Button title="Novo Diagnostico" onPress={resetDiagnosis} variant="primary" fullWidth />
+            <View style={{ height: Spacing.sm }} />
             <Button
               title="Voltar para Planta"
               onPress={() =>
@@ -403,7 +424,8 @@ export default function Diagnose() {
                   params: { plantId: selectedPlant?.id },
                 })
               }
-              color="#666"
+              variant="ghost"
+              fullWidth
             />
           </View>
         </ScrollView>
@@ -417,225 +439,222 @@ export default function Diagnose() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: Spacing.lg,
   },
   header: {
-    padding: 20,
-    backgroundColor: "#f8f8f8",
+    padding: Spacing.lg,
+    backgroundColor: theme.backgroundSecondary,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: theme.border,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.fontSize["2xl"],
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
   },
   listContainer: {
-    padding: 16,
+    padding: Spacing.md,
   },
   plantCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: theme.backgroundSecondary,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.sm,
   },
   plantImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 16,
+    borderRadius: BorderRadius.md,
+    marginRight: Spacing.md,
   },
   plantInfo: {
     flex: 1,
   },
   plantName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
+    marginBottom: Spacing.xs,
   },
   plantScientific: {
-    fontSize: 14,
+    fontSize: Typography.fontSize.sm,
     fontStyle: "italic",
-    color: "#666",
-  },
-  icon: {
-    fontSize: 64,
-    marginBottom: 16,
-    textAlign: "center",
+    color: theme.textSecondary,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
     textAlign: "center",
   },
   emptySubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 24,
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
+    marginBottom: Spacing.lg,
     textAlign: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
+    marginTop: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
   },
   captureContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: Spacing.lg,
   },
   captureTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: Typography.fontSize["2xl"],
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   captureDescription: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: Typography.fontSize.base,
+    color: theme.textSecondary,
     textAlign: "center",
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: Spacing.xl,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
   },
   buttonGroup: {
     width: "100%",
     maxWidth: 300,
   },
-  analyzingIcon: {
-    fontSize: 64,
-    marginBottom: 32,
-    textAlign: "center",
-  },
   analyzingText: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   analyzingSubtext: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 32,
+    fontSize: Typography.fontSize.sm,
+    color: theme.textSecondary,
+    marginBottom: Spacing.xl,
     textAlign: "center",
   },
   progressBarContainer: {
     width: "80%",
     height: 6,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 3,
+    backgroundColor: theme.backgroundTertiary,
+    borderRadius: BorderRadius.sm,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 3,
+    backgroundColor: theme.primaryLight,
+    borderRadius: BorderRadius.sm,
   },
   analyzingNote: {
-    fontSize: 12,
-    color: "#999",
+    fontSize: Typography.fontSize.xs,
+    color: theme.textTertiary,
     textAlign: "center",
     fontStyle: "italic",
   },
   resultContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   resultImage: {
     width: "100%",
     height: 250,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.lg,
   },
   resultHeader: {
     alignItems: "center",
-    marginBottom: 24,
-  },
-  resultIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+    marginBottom: Spacing.lg,
   },
   resultTitle: {
-    fontSize: 26,
-    fontWeight: "bold",
+    fontSize: Typography.fontSize["3xl"],
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   resultPlant: {
-    fontSize: 16,
+    fontSize: Typography.fontSize.base,
     fontStyle: "italic",
-    color: "#666",
-    marginBottom: 12,
+    color: theme.textSecondary,
+    marginBottom: Spacing.sm,
   },
   metaContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: Spacing.sm,
   },
   confidenceText: {
-    fontSize: 14,
-    color: "#888",
+    fontSize: Typography.fontSize.sm,
+    color: theme.textTertiary,
   },
   severityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    color: theme.background,
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    overflow: "hidden",
   },
   section: {
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
+    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    backgroundColor: theme.backgroundSecondary,
+    borderRadius: BorderRadius.lg,
   },
   treatmentSection: {
     backgroundColor: "#fff3e0",
     borderLeftWidth: 4,
-    borderLeftColor: "#ff9800",
+    borderLeftColor: theme.warning,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: theme.text,
+    marginBottom: Spacing.sm,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
   },
   listItem: {
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 8,
-    color: "#333",
+    fontSize: Typography.fontSize.base - 1,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    marginBottom: Spacing.sm,
+    color: theme.text,
   },
   prognosisText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#333",
+    fontSize: Typography.fontSize.base - 1,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    color: theme.text,
   },
   notesText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#666",
+    fontSize: Typography.fontSize.base - 1,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    color: theme.textSecondary,
     fontStyle: "italic",
   },
   actionButtons: {
-    marginTop: 16,
+    marginTop: Spacing.md,
   },
 });

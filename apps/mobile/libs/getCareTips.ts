@@ -1,4 +1,4 @@
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "./config";
 
 interface CareTipsParams {
   plantName?: string;
@@ -63,9 +63,10 @@ export async function getCareTips({
   if (plantName) params.append("plant_name", plantName);
   if (scientificName) params.append("scientific_name", scientificName);
 
+  const headers = await getAuthHeaders();
   const response = await fetch(
     `${SUPABASE_FUNCTIONS_URL}/get-care-tips?${params.toString()}`,
-    { headers: SUPABASE_HEADERS }
+    { headers }
   );
 
   if (!response.ok) {

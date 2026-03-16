@@ -1,11 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import OpenAI from "openai";
+import { getRioWeather } from "../_shared/weather.ts";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
 
 const PLANTNET_API_KEY = Deno.env.get("PLANTNET_API_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 serve(async (req: Request) => {
   try {
+    const auth = await getAuthenticatedUser(req);
+    if ("error" in auth) return auth.error;
+
     const { image_base64, mime_type } = await req.json();
 
     if (!image_base64) {
@@ -16,6 +21,9 @@ serve(async (req: Request) => {
     }
 
     const mimeType = mime_type || "image/jpeg";
+
+    // Start weather fetch in parallel with PlantNet
+    const weatherPromise = getRioWeather();
 
     // Step 1: Identify plant via PlantNet
     const binary = Uint8Array.from(atob(image_base64), (c) => c.charCodeAt(0));
@@ -41,7 +49,7 @@ serve(async (req: Request) => {
 
       console.error("PlantNet error:", plantnetRes.status, await plantnetRes.text());
       return new Response(
-        JSON.stringify({ confidence: 0, species: "", commonName: "", wateringIntervalDays: 7, lightPreference: "", description: "Não foi possível identificar a planta." }),
+        JSON.stringify({ confidence: 0, species: "", commonName: "", wateringIntervalDays: 3, lightPreference: "", description: "Não foi possível identificar a planta." }),
         { headers: { "Content-Type": "application/json" } }
       );
     }
@@ -51,7 +59,7 @@ serve(async (req: Request) => {
 
     if (!topResult) {
       return new Response(
-        JSON.stringify({ confidence: 0, species: "", commonName: "", wateringIntervalDays: 7, lightPreference: "", description: "Nenhuma planta identificada na imagem." }),
+        JSON.stringify({ confidence: 0, species: "", commonName: "", wateringIntervalDays: 3, lightPreference: "", description: "Nenhuma planta identificada na imagem." }),
         { headers: { "Content-Type": "application/json" } }
       );
     }
@@ -61,7 +69,10 @@ serve(async (req: Request) => {
       topResult.species?.commonNames?.[0] || "";
     const confidence = topResult.score || 0;
 
-    // Step 2: Get care details from OpenAI for the identified species
+    // Step 2: Get weather data
+    const weather = await weatherPromise;
+
+    // Step 3: Get care details from OpenAI for the identified species
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
     const careCompletion = await openai.chat.completions.create({
@@ -70,12 +81,29 @@ serve(async (req: Request) => {
       messages: [
         {
           role: "system",
-          content: `Você é um botânico especialista. Dado o nome científico de uma planta, forneça informações de cuidado específicas para o clima do Rio de Janeiro (Köppen Aw — tropical de savana com estação seca no inverno, temperatura 22-30°C no verão, 18-24°C no inverno, umidade 70-80%, chuvas intensas Out-Mar, ar salino costeiro).
+          content: `Você é um botânico especialista em plantas no Rio de Janeiro. Dado o nome científico de uma planta, forneça informações de cuidado calibradas para as condições ATUAIS.
+
+**Condições climáticas ATUAIS no Rio de Janeiro:**
+- Temperatura atual: ${weather.currentTemp}°C
+- Umidade relativa: ${weather.currentHumidity}%
+- Temperatura máxima prevista (próximos 7 dias): ${weather.maxTempNext7Days}°C
+- Estação: ${weather.seasonLabel}
+
+**Regras de calibração para wateringIntervalDays:**
+- Ervas aromáticas (hortelã, manjericão, salsa, cebolinha, etc.) em temperatura acima de 28°C: 1 dia
+- Ervas aromáticas em temperatura entre 20-28°C: 1-2 dias
+- Hortaliças e vegetais folhosos: 1-2 dias
+- Plantas tropicais de folhagem (jiboias, costela-de-adão, etc.): 2-4 dias
+- Plantas com flores (rosa, hibisco, etc.): 2-3 dias
+- Suculentas e cactos: 7-14 dias
+- Outras plantas: considere temperatura, umidade e necessidade hídrica da espécie
+
+**Princípio:** Priorize a saúde da planta no calor carioca. É melhor regar um pouco a mais do que deixar secar. Em dias de calor acima de 30°C, reduza os intervalos.
 
 Responda APENAS com um JSON no formato:
 {
-  "wateringIntervalDays": 7,
-  "lightPreference": "luz indireta",
+  "wateringIntervalDays": <número inteiro>,
+  "lightPreference": "descrição da preferência de luz",
   "description": "Descrição dos cuidados em português brasileiro"
 }`,
         },
@@ -93,7 +121,7 @@ Responda APENAS com um JSON no formato:
       species,
       commonName: commonName || "Desconhecida",
       confidence,
-      wateringIntervalDays: careData.wateringIntervalDays || 7,
+      wateringIntervalDays: careData.wateringIntervalDays || 3,
       lightPreference: careData.lightPreference || "medium",
       description: careData.description || "Sem descrição disponível.",
     };

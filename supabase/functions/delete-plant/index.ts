@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
 
 serve(async (request: Request) => {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
+
+  const auth = await getAuthenticatedUser(request);
+  if ("error" in auth) return auth.error;
 
   let body;
   try {
@@ -16,10 +20,10 @@ serve(async (request: Request) => {
     });
   }
 
-  const { plantId, userId } = body;
+  const { plantId } = body;
 
-  if (!plantId || !userId) {
-    return new Response(JSON.stringify({ error: "Missing plantId or userId" }), {
+  if (!plantId) {
+    return new Response(JSON.stringify({ error: "Missing plantId" }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
     });
@@ -52,7 +56,7 @@ serve(async (request: Request) => {
     });
   }
 
-  if (plant.user_id !== userId) {
+  if (plant.user_id !== auth.userId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 403,
       headers: { "Content-Type": "application/json" }

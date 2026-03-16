@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
+
 serve(async (request: Request) => {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
+
+  const auth = await getAuthenticatedUser(request);
+  if ("error" in auth) return auth.error;
+
   let body;
   try {
     body = await request.json();
@@ -19,27 +25,26 @@ serve(async (request: Request) => {
     lightPreference,
     description,
     lastWateredAt,
-    userId,
     notificationId,
   } = body;
 
-  if (!userId || !species || !imageUrl) {
+  if (!species || !imageUrl) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
-  const PROJECT_URL = Deno.env.get("PROJECT_URL");
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY");
-  if (!PROJECT_URL || !SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
-  const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY, {
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   });
 
   const { data, error } = await supabase
     .from("plants")
     .insert({
-      user_id: userId,
+      user_id: auth.userId,
       name: commonName || species,
       scientific_name: species,
       image_url: imageUrl,

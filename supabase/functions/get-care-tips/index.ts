@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import OpenAI from "openai";
+import { getRioWeather } from "../_shared/weather.ts";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
+
+function getQuarter(date: Date): number {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 serve(async (req: Request) => {
   try {
+    const auth = await getAuthenticatedUser(req);
+    if ("error" in auth) return auth.error;
+
     const url = new URL(req.url);
     const plantName = url.searchParams.get("plant_name");
     const scientificName = url.searchParams.get("scientific_name");
@@ -42,8 +51,19 @@ serve(async (req: Request) => {
         .single();
 
       if (!fetchError && cachedTips) {
-        console.log("Returning cached care tips for:", scientificName);
-        return new Response(
+        const cachedDate = new Date(cachedTips.updated_at || cachedTips.created_at);
+        const now = new Date();
+        const cachedQuarter = getQuarter(cachedDate);
+        const cachedYear = cachedDate.getFullYear();
+        const currentQuarter = getQuarter(now);
+        const currentYear = now.getFullYear();
+
+        if (cachedYear !== currentYear || cachedQuarter !== currentQuarter) {
+          console.log("Cache expired (different quarter), regenerating tips for:", scientificName);
+          await supabase.from("care_tips").delete().eq("scientific_name", scientificName);
+        } else {
+          console.log("Returning cached care tips for:", scientificName);
+          return new Response(
           JSON.stringify({
             plantName: cachedTips.plant_name,
             scientificName: cachedTips.scientific_name,
@@ -60,10 +80,13 @@ serve(async (req: Request) => {
           }),
           { headers: { "Content-Type": "application/json" } }
         );
+        }
       }
     }
 
     console.log("No cached tips found, generating new tips for:", plantInfo);
+
+    const weather = await getRioWeather();
 
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
@@ -77,6 +100,13 @@ serve(async (req: Request) => {
 - Ar salino costeiro — considerar para plantas em varandas
 - Pragas e doenças comuns no clima quente e úmido carioca
 - Público-alvo: jardineiros domésticos no Rio de Janeiro
+
+**Condições ATUAIS (dados em tempo real):**
+- Temperatura atual: ${weather.currentTemp}°C
+- Umidade relativa: ${weather.currentHumidity}%
+- Previsão de máxima nos próximos 7 dias: ${weather.maxTempNext7Days}°C
+- Estação: ${weather.seasonLabel}
+- IMPORTANTE: Ajuste TODAS as recomendações de rega para refletir estas condições reais. No calor carioca, é melhor regar um pouco a mais do que deixar secar.
 
 **FORNEÇA INFORMAÇÕES DETALHADAS SOBRE:**
 

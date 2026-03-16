@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { getAuthenticatedUser } from "../_shared/auth.ts";
 
 serve(async (request: Request) => {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
+
+  const auth = await getAuthenticatedUser(request);
+  if ("error" in auth) return auth.error;
 
   let body;
   try {
@@ -38,6 +42,27 @@ serve(async (request: Request) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   });
+
+  // Verify ownership
+  const { data: plant, error: fetchError } = await supabase
+    .from("plants")
+    .select("user_id")
+    .eq("id", plantId)
+    .single();
+
+  if (fetchError || !plant) {
+    return new Response(JSON.stringify({ error: "Plant not found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  if (plant.user_id !== auth.userId) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
 
   const { data, error } = await supabase
     .from("plants")
