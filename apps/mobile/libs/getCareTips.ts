@@ -1,3 +1,5 @@
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+
 interface CareTipsParams {
   plantName?: string;
   scientificName?: string;
@@ -62,7 +64,8 @@ export async function getCareTips({
   if (scientificName) params.append("scientific_name", scientificName);
 
   const response = await fetch(
-    `https://ubwoxfprrhpcjboyturx.functions.supabase.co/get-care-tips?${params.toString()}`
+    `${SUPABASE_FUNCTIONS_URL}/get-care-tips?${params.toString()}`,
+    { headers: SUPABASE_HEADERS }
   );
 
   if (!response.ok) {

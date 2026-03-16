@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet } from "react-native";
 import { supabase } from "../libs/supabaseClient";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../libs/config";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
@@ -33,7 +34,9 @@ export default function Index() {
     }
 
     try {
-      const response = await fetch(`https://ubwoxfprrhpcjboyturx.functions.supabase.co/list-plants?userId=${user.id}`);
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`, {
+        headers: SUPABASE_HEADERS,
+      });
       const json = await response.json();
 
       if (!response.ok || json.error) {

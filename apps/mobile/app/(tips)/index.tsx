@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../libs/supabaseClient";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
 import { getCareTips, CareTips } from "../../libs/getCareTips";
 
 interface Plant {
@@ -78,7 +79,8 @@ export default function Tips() {
 
     try {
       const response = await fetch(
-        `https://ubwoxfprrhpcjboyturx.functions.supabase.co/list-plants?userId=${user.id}`
+        `${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`,
+        { headers: SUPABASE_HEADERS }
       );
       const json = await response.json();
 

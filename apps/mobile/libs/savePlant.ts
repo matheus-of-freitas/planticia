@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { scheduleWateringNotification } from "./notifications";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
 
 interface SavePlantParams {
   imageUrl: string;
@@ -43,9 +44,9 @@ export async function savePlant({
   const wateringDays = wateringIntervalDays || 7;
   const lastWateredDate = lastWateredAt || new Date().toISOString();
 
-  const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/plant-create", {
+  const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/plant-create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: SUPABASE_HEADERS,
     body: JSON.stringify({
       userId: user.id,
       imageUrl,
@@ -73,9 +74,9 @@ export async function savePlant({
       11
     );
 
-    await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-notification", {
+    await fetch(`${SUPABASE_FUNCTIONS_URL}/update-notification`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: SUPABASE_HEADERS,
       body: JSON.stringify({ plantId: json.plant.id, notificationId }),
     });
   } catch (notificationError) {
@@ -84,9 +85,10 @@ export async function savePlant({
 
   if (species) {
     fetch(
-      `https://ubwoxfprrhpcjboyturx.functions.supabase.co/get-care-tips?scientific_name=${encodeURIComponent(
+      `${SUPABASE_FUNCTIONS_URL}/get-care-tips?scientific_name=${encodeURIComponent(
         species
-      )}&plant_name=${encodeURIComponent(plantName)}`
+      )}&plant_name=${encodeURIComponent(plantName)}`,
+      { headers: SUPABASE_HEADERS }
     ).catch((err) => {
       console.log("Background care tips caching failed (non-critical):", err);
     });

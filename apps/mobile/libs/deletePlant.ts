@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { cancelPlantNotifications } from "./notifications";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
 
 /**
  * Deletes a plant and cancels its notifications
@@ -26,10 +27,10 @@ export async function deletePlant(plantId: string): Promise<void> {
   }
 
   const response = await fetch(
-    "https://ubwoxfprrhpcjboyturx.functions.supabase.co/delete-plant",
+    `${SUPABASE_FUNCTIONS_URL}/delete-plant`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: SUPABASE_HEADERS,
       body: JSON.stringify({ plantId, userId: user.id }),
     }
   );

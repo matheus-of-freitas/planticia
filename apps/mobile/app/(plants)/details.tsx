@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { rescheduleWateringNotification } from "../../libs/notifications";
 import { deletePlant } from "../../libs/deletePlant";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
 
 interface Plant {
   id: string;
@@ -50,9 +51,9 @@ export default function PlantDetails() {
       nextTrigger.setDate(nextTrigger.getDate() + (plant.watering_interval_days || 7));
       nextTrigger.setHours(plant.watering_hour || 11, 0, 0, 0);
 
-      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: SUPABASE_HEADERS,
         body: JSON.stringify({ plantId: plant.id, updates: { last_watered_at: now } }),
       });
       const json = await response.json();
@@ -96,7 +97,9 @@ export default function PlantDetails() {
         return;
       }
       try {
-        const res = await fetch(`https://ubwoxfprrhpcjboyturx.functions.supabase.co/get-details?plantId=${plantId}`);
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/get-details?plantId=${plantId}`, {
+          headers: SUPABASE_HEADERS,
+        });
         const json = await res.json();
         if (!res.ok || json.error) {
           console.error("Error loading plant:", json.error);
@@ -128,9 +131,9 @@ export default function PlantDetails() {
       nextTrigger.setDate(nextTrigger.getDate() + days);
       nextTrigger.setHours(wateringHour, 0, 0, 0);
 
-      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: SUPABASE_HEADERS,
         body: JSON.stringify({
           plantId: plant.id,
           updates: {
@@ -188,9 +191,9 @@ export default function PlantDetails() {
     setSaving(true);
 
     try {
-      const response = await fetch("https://ubwoxfprrhpcjboyturx.functions.supabase.co/update-plant", {
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: SUPABASE_HEADERS,
         body: JSON.stringify({ plantId: plant?.id, updates: { watering_hour: hour } }),
       });
       const json = await response.json();

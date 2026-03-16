@@ -16,6 +16,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { supabase } from "../../libs/supabaseClient";
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "../../libs/config";
 import { diagnosePlant } from "../../libs/diagnosePlant";
 
 interface Plant {
@@ -78,7 +79,8 @@ export default function Diagnose() {
 
     try {
       const response = await fetch(
-        `https://ubwoxfprrhpcjboyturx.functions.supabase.co/list-plants?userId=${user.id}`
+        `${SUPABASE_FUNCTIONS_URL}/list-plants?userId=${user.id}`,
+        { headers: SUPABASE_HEADERS }
       );
       const json = await response.json();
 

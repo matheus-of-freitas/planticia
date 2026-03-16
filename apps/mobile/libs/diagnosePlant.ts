@@ -1,3 +1,5 @@
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_HEADERS } from "./config";
+
 interface DiagnosePlantParams {
   imageBase64: string;
   mimeType: string;
@@ -33,12 +35,10 @@ export async function diagnosePlant({
   scientificName,
 }: DiagnosePlantParams): Promise<DiagnosisResult> {
   const response = await fetch(
-    "https://ubwoxfprrhpcjboyturx.functions.supabase.co/diagnose-disease",
+    `${SUPABASE_FUNCTIONS_URL}/diagnose-disease`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: SUPABASE_HEADERS,
       body: JSON.stringify({
         image_base64: imageBase64,
         mime_type: mimeType,

@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signInWithGoogle() {
     console.log("Starting Google sign-in...");
 
-    const redirectUrl = Linking.createURL("/");
+    const redirectUrl = Linking.createURL("/", { scheme: "planticia" });
     console.log("Redirect URL:", redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
