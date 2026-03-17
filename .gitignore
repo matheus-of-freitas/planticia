@@ -26,8 +26,10 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Claude MCP config (contains API tokens)
+# Claude
 .mcp.json
+CLAUDE.md
+.claude/
 
 # IDE
 .vscode/
