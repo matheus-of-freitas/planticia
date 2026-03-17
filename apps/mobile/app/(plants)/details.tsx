@@ -9,7 +9,6 @@ import {
   TextInput,
   Modal,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -19,6 +18,7 @@ import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { useAlert } from "../../context/AlertContext";
 
 interface Plant {
   id: string;
@@ -92,6 +92,7 @@ export default function PlantDetails() {
   const [editingHour, setEditingHour] = useState("11");
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     async function load() {
@@ -106,19 +107,19 @@ export default function PlantDetails() {
         const json = await res.json();
         if (!res.ok || json.error) {
           console.error("Error loading plant:", json.error);
-          alert("Error loading plant");
+          showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar planta.' });
         } else {
           setPlant(json.plant);
           setWateringHour(json.plant.watering_hour || 11);
         }
       } catch (err) {
         console.error("Error loading plant:", err);
-        alert("Error loading plant");
+        showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar planta.' });
       }
       setLoading(false);
     }
     load();
-  }, [plantId]);
+  }, [plantId, showAlert]);
 
   async function handleUpdateWateringSchedule() {
     if (!plant) return;
@@ -217,31 +218,24 @@ export default function PlantDetails() {
   function handleDeletePlant() {
     if (!plant) return;
 
-    Alert.alert(
-      "Excluir Planta",
-      `Tem certeza que deseja excluir ${plant.name}? Esta ação não pode ser desfeita.`,
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              await deletePlant(plant.id);
-              router.replace("/");
-            } catch (err) {
-              console.error(err);
-              Alert.alert("Erro", "Falha ao excluir planta");
-              setDeleting(false);
-            }
-          },
-        },
-      ]
-    );
+    showAlert({
+      type: 'confirm',
+      title: 'Excluir Planta',
+      message: `Tem certeza que deseja excluir ${plant.name}? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      onConfirm: async () => {
+        setDeleting(true);
+        try {
+          await deletePlant(plant.id);
+          router.replace("/");
+        } catch (err) {
+          console.error(err);
+          showAlert({ type: 'error', title: 'Erro', message: 'Falha ao excluir planta.' });
+          setDeleting(false);
+        }
+      },
+    });
   }
 
 

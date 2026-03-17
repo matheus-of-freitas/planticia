@@ -1,6 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { AlertProvider } from "../context/AlertContext";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Notifications from "expo-notifications";
 import * as SplashScreenExpo from "expo-splash-screen";
@@ -116,8 +117,10 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <RootStack />
-    </AuthProvider>
+    <AlertProvider>
+      <AuthProvider>
+        <RootStack />
+      </AuthProvider>
+    </AlertProvider>
   );
 }

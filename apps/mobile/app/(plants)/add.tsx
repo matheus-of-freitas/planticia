@@ -2,16 +2,23 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { useAlert } from "../../context/AlertContext";
 
 export default function AddPlant() {
   const router = useRouter();
   const theme = Colors.light;
+  const { showAlert } = useAlert();
 
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      alert("Permissão de câmera é necessária");
+      showAlert({
+        type: 'warning',
+        title: 'Permissão Necessária',
+        message: 'Permissão de câmera é necessária para tirar fotos.',
+      });
       return;
     }
 
@@ -45,7 +52,9 @@ export default function AddPlant() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
-        <Text style={styles.iconLarge}>🌱</Text>
+        <View style={styles.iconLargeContainer}>
+          <MaterialCommunityIcons name="leaf" size={80} color={Colors.light.primary} />
+        </View>
         <Text style={[styles.title, { color: theme.text }]}>Adicionar Planta</Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           Use sua câmera ou escolha uma foto para identificar automaticamente sua planta
@@ -63,7 +72,7 @@ export default function AddPlant() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.optionIcon}>📸</Text>
+              <MaterialCommunityIcons name="camera" size={40} color="#FFFFFF" />
             </LinearGradient>
             <Text style={[styles.optionTitle, { color: theme.text }]}>Tirar Foto</Text>
             <Text style={[styles.optionDescription, { color: theme.textSecondary }]}>
@@ -82,7 +91,7 @@ export default function AddPlant() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.optionIcon}>🖼️</Text>
+              <MaterialCommunityIcons name="image" size={40} color="#FFFFFF" />
             </LinearGradient>
             <Text style={[styles.optionTitle, { color: theme.text }]}>Escolher Foto</Text>
             <Text style={[styles.optionDescription, { color: theme.textSecondary }]}>
@@ -92,7 +101,7 @@ export default function AddPlant() {
         </View>
 
         <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary }]}>
-          <Text style={styles.infoIcon}>💡</Text>
+          <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={theme.textSecondary} style={styles.infoIcon} />
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             Para melhores resultados, tire fotos com boa iluminação e foque nas folhas
           </Text>
@@ -111,9 +120,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     justifyContent: "center",
   },
-  iconLarge: {
-    fontSize: 80,
-    textAlign: "center",
+  iconLargeContainer: {
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
   title: {
@@ -148,9 +156,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.md,
   },
-  optionIcon: {
-    fontSize: 40,
-  },
   optionTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
@@ -168,7 +173,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   infoIcon: {
-    fontSize: Typography.fontSize.xl,
     marginRight: Spacing.sm,
   },
   infoText: {

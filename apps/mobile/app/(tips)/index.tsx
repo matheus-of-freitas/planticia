@@ -8,7 +8,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
   Animated,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -18,6 +17,7 @@ import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { getCareTips, CareTips } from "../../libs/getCareTips";
 import { Button } from "../../components/ui/Button";
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { useAlert } from "../../context/AlertContext";
 
 const theme = Colors.light;
 
@@ -37,6 +37,7 @@ export default function Tips() {
   const [loading, setLoading] = useState(false);
   const [careTips, setCareTips] = useState<CareTips | null>(null);
   const [progress] = useState(new Animated.Value(0));
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     loadPlants();
@@ -67,12 +68,12 @@ export default function Tips() {
           })
           .catch((error) => {
             console.error("Error getting care tips:", error);
-            Alert.alert("Erro", "Falha ao carregar dicas de cuidado. Tente novamente.");
+            showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar dicas de cuidado. Tente novamente.' });
             setStep("select");
           });
       }
     }
-  }, [params.plantId, plants, progress]);
+  }, [params.plantId, plants, progress, showAlert]);
 
   async function loadPlants() {
     setLoading(true);
@@ -125,7 +126,7 @@ export default function Tips() {
       setStep("display");
     } catch (error) {
       console.error("Error getting care tips:", error);
-      Alert.alert("Erro", "Falha ao carregar dicas de cuidado. Tente novamente.");
+      showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar dicas de cuidado. Tente novamente.' });
       setStep("select");
     }
   }

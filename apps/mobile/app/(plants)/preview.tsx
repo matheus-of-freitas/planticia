@@ -4,11 +4,13 @@ import { compressImage } from "../../utils/compressImage";
 import { supabase } from "../../libs/supabaseClient";
 import * as FileSystem from "expo-file-system/legacy";
 import { useState } from "react";
+import { useAlert } from "../../context/AlertContext";
 
 export default function Preview() {
   const { uri } = useLocalSearchParams<{ uri: string }>();
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
+  const { showAlert } = useAlert();
 
   if (!uri) {
     return (
@@ -43,7 +45,7 @@ export default function Preview() {
 
       if (error) {
         console.error("Upload error:", error);
-        alert("Erro ao fazer upload da imagem");
+        showAlert({ type: 'error', title: 'Erro', message: 'Erro ao fazer upload da imagem.' });
         return;
       }
 

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   FlatList,
-  Alert,
   Animated,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -20,6 +19,7 @@ import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { diagnosePlant } from "../../libs/diagnosePlant";
 import { Button } from "../../components/ui/Button";
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { useAlert } from "../../context/AlertContext";
 
 const theme = Colors.light;
 
@@ -58,6 +58,7 @@ export default function Diagnose() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [progress] = useState(new Animated.Value(0));
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     loadPlants();
@@ -110,7 +111,11 @@ export default function Diagnose() {
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissao Necessaria", "Permissao de camera e necessaria para tirar fotos");
+      showAlert({
+        type: 'warning',
+        title: 'Permissão Necessária',
+        message: 'Permissão de câmera é necessária para tirar fotos.',
+      });
       return;
     }
 
@@ -166,7 +171,7 @@ export default function Diagnose() {
       setStep("result");
     } catch (error) {
       console.error("Error diagnosing plant:", error);
-      Alert.alert("Erro", "Falha ao analisar a planta. Tente novamente.");
+      showAlert({ type: 'error', title: 'Erro', message: 'Falha ao analisar a planta. Tente novamente.' });
     } finally {
       setAnalyzing(false);
     }
