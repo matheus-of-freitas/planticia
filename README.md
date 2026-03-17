@@ -24,6 +24,142 @@ Planticia is a mobile plant care assistant powered by AI. Take a photo to identi
 - **AI**: OpenAI GPT-4o (care info, diagnosis, tips)
 - **Monorepo**: Turborepo + pnpm workspaces
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    subgraph Mobile["📱 Mobile App (Expo/React Native)"]
+        UI[UI Components]
+        Router[Expo Router]
+        Auth[Auth Context]
+        Libs[API Layer]
+        Notif[Local Notifications]
+    end
+
+    subgraph Supabase["☁️ Supabase Backend"]
+        SupaAuth[Auth - Google OAuth]
+        Storage[Storage - Plant Images]
+        DB[(PostgreSQL + RLS)]
+
+        subgraph AI_Functions["AI Edge Functions"]
+            Identify[identify]
+            Diagnose[diagnose-disease]
+            Tips[get-care-tips]
+        end
+
+        subgraph CRUD_Functions["CRUD Edge Functions"]
+            Create[plant-create]
+            List[list-plants]
+            Update[update-plant]
+            Delete[delete-plant]
+            UpdateNotif[update-notification]
+        end
+    end
+
+    subgraph External["🌐 External APIs"]
+        PlantNet[PlantNet API]
+        OpenAI[OpenAI GPT-4o]
+        Weather[Weather API]
+    end
+
+    UI --> Router
+    Router --> Libs
+    Auth -- JWT --> SupaAuth
+    Libs --> AI_Functions
+    Libs --> CRUD_Functions
+    Libs --> Storage
+    CRUD_Functions --> DB
+    Tips --> DB
+
+    Identify --> PlantNet
+    Identify --> Weather
+    Identify --> OpenAI
+    Diagnose --> OpenAI
+    Tips --> OpenAI
+```
+
+### Plant Identification Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Mobile App
+    participant Img as ImageManipulator
+    participant Edge as identify (Edge Fn)
+    participant PN as PlantNet API
+    participant W as Weather API
+    participant AI as OpenAI GPT-4o
+    participant DB as Supabase DB
+    participant S as Supabase Storage
+
+    User->>App: Take / pick photo
+    App->>Img: Compress & resize
+    Img-->>App: Base64 image
+
+    App->>Edge: POST /identify (base64)
+
+    par Parallel requests
+        Edge->>PN: Identify species (image)
+        PN-->>Edge: Species match + score
+    and
+        Edge->>W: Fetch Rio de Janeiro weather
+        W-->>Edge: Temperature, humidity, season
+    end
+
+    Edge->>AI: GPT-4o (species + weather → care JSON)
+    AI-->>Edge: Care instructions (JSON)
+    Edge-->>App: Species + care data
+
+    App->>S: Upload original image
+    S-->>App: Public image URL
+    App->>DB: INSERT plant record
+    DB-->>App: Plant ID
+    App->>App: Schedule watering notification
+    App-->>User: Show plant card in collection
+```
+
+### AI Pipeline
+
+```mermaid
+graph LR
+    subgraph Inputs["Inputs"]
+        Photo["📸 Plant Photo"]
+        Species["🌱 Species Name"]
+        Weather["🌤️ Weather Data"]
+        PlantData["📋 Plant Record"]
+    end
+
+    subgraph Identify["🔍 Identify"]
+        ID_PN[PlantNet] --> ID_Match[Species Match]
+        ID_Weather[Weather Fetch] --> ID_Context[Climate Context]
+        ID_Match --> ID_AI[GPT-4o]
+        ID_Context --> ID_AI
+        ID_AI --> ID_Out["Species + Care Info"]
+    end
+
+    subgraph Diagnose["🩺 Diagnose"]
+        DX_Photo[Photo as Base64] --> DX_AI[GPT-4o Vision]
+        DX_AI --> DX_Out["Diagnosis + Treatment"]
+    end
+
+    subgraph Tips["💡 Care Tips"]
+        T_Species[Species Name] --> T_Cache{Cached?}
+        T_Weather[Weather Data] --> T_AI[GPT-4o]
+        T_Cache -- Yes --> T_Out["Cached Tips"]
+        T_Cache -- No --> T_AI
+        T_AI --> T_Store[Cache in DB]
+        T_Store --> T_Out["Care Guide"]
+    end
+
+    Photo --> ID_PN
+    Photo --> DX_Photo
+    Weather --> ID_Weather
+    Weather --> T_Weather
+    Species --> T_Species
+```
+
 ## Getting Started
 
 ```bash
