@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet, useColorScheme } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 
 interface SplashScreenProps {
@@ -69,7 +70,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           },
         ]}
       >
-        <Text style={[styles.logo, { color: theme.primary }]}>🌱</Text>
+        <MaterialCommunityIcons name="sprout" size={120} color={theme.primary} />
       </Animated.View>
 
       <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
@@ -90,10 +91,6 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-  },
-  logo: {
-    fontSize: 120,
-    marginBottom: Spacing.xl,
   },
   textContainer: {
     alignItems: 'center',

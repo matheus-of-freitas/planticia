@@ -1,14 +1,15 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Colors, Shadows, Spacing, Typography } from '../../constants/theme';
+import { TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Colors, Shadows, Spacing } from '../../constants/theme';
 
 interface FABProps {
   onPress: () => void;
-  icon?: string;
+  iconName?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   size?: number;
 }
 
-export function FAB({ onPress, icon = '+', size = 64 }: FABProps) {
+export function FAB({ onPress, iconName = 'plus', size = 64 }: FABProps) {
   const theme = Colors.light;
 
   return (
@@ -26,7 +27,7 @@ export function FAB({ onPress, icon = '+', size = 64 }: FABProps) {
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text style={[styles.icon, { fontSize: size / 2 }]}>{icon}</Text>
+      <MaterialCommunityIcons name={iconName} size={size / 2} color="#FFFFFF" />
     </TouchableOpacity>
   );
 }
@@ -38,10 +39,5 @@ const styles = StyleSheet.create({
     bottom: Spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  icon: {
-    color: '#FFFFFF',
-    fontWeight: Typography.fontWeight.light,
-    lineHeight: undefined,
   },
 });

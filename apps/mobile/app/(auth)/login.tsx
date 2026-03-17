@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Button } from "../../components/ui/Button";
 import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
 
@@ -51,7 +52,7 @@ export default function Login() {
         ]}
       >
         <View style={styles.logoContainer}>
-          <Text style={styles.icon}>🌱</Text>
+          <MaterialCommunityIcons name="sprout" size={100} color={theme.primary} />
           <View style={[styles.logoBadge, { backgroundColor: theme.primary }]}>
             <Text style={styles.badgeText}>AI</Text>
           </View>
@@ -63,10 +64,10 @@ export default function Login() {
         </Text>
 
         <View style={styles.features}>
-          <FeatureItem icon="📸" text="Identifique plantas com foto" theme={theme} />
-          <FeatureItem icon="💧" text="Lembretes de rega automáticos" theme={theme} />
-          <FeatureItem icon="🩺" text="Diagnóstico de doenças" theme={theme} />
-          <FeatureItem icon="📚" text="Dicas personalizadas de cuidado" theme={theme} />
+          <FeatureItem iconName="camera" text="Identifique plantas com foto" theme={theme} />
+          <FeatureItem iconName="water" text="Lembretes de rega automáticos" theme={theme} />
+          <FeatureItem iconName="stethoscope" text="Diagnóstico de doenças" theme={theme} />
+          <FeatureItem iconName="book-open-variant" text="Dicas personalizadas de cuidado" theme={theme} />
         </View>
 
         <Button
@@ -85,10 +86,10 @@ export default function Login() {
   );
 }
 
-function FeatureItem({ icon, text, theme }: { icon: string; text: string; theme: any }) {
+function FeatureItem({ iconName, text, theme }: { iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; text: string; theme: any }) {
   return (
     <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
+      <MaterialCommunityIcons name={iconName} size={24} color={theme.primary} style={styles.featureIcon} />
       <Text style={[styles.featureText, { color: theme.text }]}>{text}</Text>
     </View>
   );
@@ -107,9 +108,6 @@ const styles = StyleSheet.create({
   logoContainer: {
     position: 'relative',
     marginBottom: Spacing.lg,
-  },
-  icon: {
-    fontSize: 100,
   },
   logoBadge: {
     position: 'absolute',
@@ -149,8 +147,8 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.md,
   },
   featureIcon: {
-    fontSize: Typography.fontSize.xl,
     marginRight: Spacing.md,
+    width: 24,
   },
   featureText: {
     fontSize: Typography.fontSize.base,
