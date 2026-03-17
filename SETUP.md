@@ -81,8 +81,9 @@ supabase secrets set PLANTNET_API_KEY=... OPENAI_API_KEY=... PROJECT_URL=... SER
 
 3. **Deploy edge functions:**
    ```bash
-   supabase functions deploy
+   supabase functions deploy --no-verify-jwt
    ```
+   The `--no-verify-jwt` flag is required because the functions handle authentication internally.
 
 4. **Enable Google OAuth:**
    In the Supabase dashboard, go to **Auth → Providers → Google** and configure your OAuth credentials (client ID and secret from Google Cloud Console).
@@ -143,19 +144,18 @@ planticia/
 │   ├── app/              # File-based routing (Expo Router)
 │   ├── components/ui/    # Reusable UI components
 │   ├── libs/             # API layer (Supabase Edge Function calls)
-│   └── context/          # Auth context (Google OAuth)
+│   └── context/          # Auth + Alert contexts
 ├── packages/shared/      # Shared TypeScript types
 ├── supabase/
 │   ├── functions/        # Deno edge functions
 │   │   ├── identify/     # Plant ID (PlantNet + OpenAI)
 │   │   ├── diagnose-disease/  # Disease diagnosis (OpenAI Vision)
 │   │   ├── get-care-tips/     # Care guide generation (OpenAI)
+│   │   ├── _shared/      # Shared modules (auth, weather)
 │   │   └── ...           # CRUD + notification functions
 │   └── migrations/       # PostgreSQL migrations
-└── CLAUDE.md             # AI assistant instructions
+└── SETUP.md              # This file
 ```
-
-See `CLAUDE.md` for detailed architecture documentation.
 
 ## Useful Commands
 
@@ -167,6 +167,6 @@ See `CLAUDE.md` for detailed architecture documentation.
 | `pnpm lint` | Run linter |
 | `supabase start` | Start local Supabase (Docker) |
 | `supabase db push` | Apply migrations to remote DB |
-| `supabase functions deploy` | Deploy all edge functions |
-| `supabase functions deploy <name>` | Deploy a single edge function |
+| `supabase functions deploy --no-verify-jwt` | Deploy all edge functions |
+| `supabase functions deploy <name> --no-verify-jwt` | Deploy a single edge function |
 | `eas build --platform android --profile preview` | Build preview APK |

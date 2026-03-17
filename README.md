@@ -49,11 +49,10 @@ planticia/
 │   ├── app/              # File-based routing (Expo Router)
 │   ├── components/ui/    # Reusable UI components
 │   ├── libs/             # API layer (Edge Function calls)
-│   └── context/          # Auth context (Google OAuth)
+│   └── context/          # Auth + Alert contexts
 ├── packages/shared/      # Shared TypeScript types
 ├── supabase/
 │   ├── functions/        # Deno edge functions
 │   └── migrations/       # PostgreSQL migrations
-├── CLAUDE.md             # AI assistant instructions
 └── SETUP.md              # Full setup guide
 ```
