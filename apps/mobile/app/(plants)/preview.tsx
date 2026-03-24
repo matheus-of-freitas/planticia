@@ -1,10 +1,14 @@
-import { Image, View, Button, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { Image, View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { compressImage } from "../../utils/compressImage";
 import { supabase } from "../../libs/supabaseClient";
 import * as FileSystem from "expo-file-system/legacy";
 import { useState } from "react";
 import { useAlert } from "../../context/AlertContext";
+import { Button } from "../../components/ui/Button";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
+
+const theme = Colors.light;
 
 export default function Preview() {
   const { uri } = useLocalSearchParams<{ uri: string }>();
@@ -14,8 +18,10 @@ export default function Preview() {
 
   if (!uri) {
     return (
-      <View style={styles.centerContainer}>
-        <Text>Nenhuma imagem encontrada.</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>
+          Nenhuma imagem encontrada.
+        </Text>
       </View>
     );
   }
@@ -65,19 +71,21 @@ export default function Preview() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.inverseSurface }]}>
       <Image
         source={{ uri }}
         style={styles.image}
       />
-      <View style={styles.buttonContainer}>
+      <View style={[styles.bottomBar, { backgroundColor: theme.surfaceContainerLow }]}>
         {uploading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
-            <Text style={styles.loadingText}>Processando imagem...</Text>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.onSurfaceVariant }]}>
+              Processando imagem...
+            </Text>
           </View>
         ) : (
-          <Button title="Usar esta Foto" onPress={uploadImage} />
+          <Button title="Usar esta Foto" onPress={uploadImage} variant="primary" fullWidth />
         )}
       </View>
     </View>
@@ -87,30 +95,34 @@ export default function Preview() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: Spacing.lg,
+  },
+  emptyText: {
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.base,
   },
   image: {
     flex: 1,
     width: "100%",
     resizeMode: "contain",
   },
-  buttonContainer: {
-    padding: 24,
-    backgroundColor: "#fff",
+  bottomBar: {
+    padding: Spacing.lg,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   loadingContainer: {
     alignItems: "center",
-    padding: 16,
+    padding: Spacing.md,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#666",
+    marginTop: Spacing.sm,
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.base,
   },
 });

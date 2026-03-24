@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Button } from "../../components/ui/Button";
-import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
+import { Colors, Typography, Spacing, BorderRadius, Gradients, GlassEffect } from "../../constants/theme";
 
 export default function Login() {
   const { session, signInWithGoogle } = useAuth();
@@ -38,10 +38,23 @@ export default function Login() {
   }, [fadeAnim, slideAnim]);
 
   return (
-    <LinearGradient
-      colors={['#F1F8E9', '#FFFFFF']}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
+      {/* Organic gradient blobs */}
+      <View style={styles.blobContainer}>
+        <LinearGradient
+          colors={[...Gradients.biophilic]}
+          style={[styles.blob, styles.blobTop]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <LinearGradient
+          colors={[...Gradients.biophilicLight]}
+          style={[styles.blob, styles.blobBottom]}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+      </View>
+
       <Animated.View
         style={[
           styles.content,
@@ -51,46 +64,51 @@ export default function Login() {
           },
         ]}
       >
-        <View style={styles.logoContainer}>
-          <MaterialCommunityIcons name="sprout" size={100} color={theme.primary} />
-          <View style={[styles.logoBadge, { backgroundColor: theme.primary }]}>
-            <Text style={styles.badgeText}>AI</Text>
+        {/* Glass card */}
+        <View style={styles.glassCard}>
+          {/* Brand icon */}
+          <LinearGradient
+            colors={[...Gradients.biophilic]}
+            style={styles.iconCircle}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="sprout" size={48} color={theme.onPrimary} />
+          </LinearGradient>
+
+          <Text style={[styles.title, { color: theme.primary }]}>Planticia</Text>
+          <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>
+            Bem-vindo de volta ao seu jardim!
+          </Text>
+
+          <Button
+            title="Entrar com Google"
+            onPress={signInWithGoogle}
+            size="lg"
+            fullWidth
+            icon={<MaterialCommunityIcons name="google" size={20} color={theme.onPrimary} />}
+            style={styles.googleButton}
+          />
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={[styles.dividerLine, { backgroundColor: theme.outlineVariant }]} />
+            <Text style={[styles.dividerText, { color: theme.onSurfaceVariant }]}>
+              A NATUREZA ESTA A ESPERA
+            </Text>
+            <View style={[styles.dividerLine, { backgroundColor: theme.outlineVariant }]} />
           </View>
+
+          <Text style={[styles.footer, { color: theme.onSurfaceVariant }]}>
+            Gratuito · Sem anuncios · Privado
+          </Text>
         </View>
 
-        <Text style={[styles.title, { color: theme.primary }]}>Plantícia</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Cuide das suas plantas com inteligência artificial
-        </Text>
-
-        <View style={styles.features}>
-          <FeatureItem iconName="camera" text="Identifique plantas com foto" theme={theme} />
-          <FeatureItem iconName="water" text="Lembretes de rega automáticos" theme={theme} />
-          <FeatureItem iconName="stethoscope" text="Diagnóstico de doenças" theme={theme} />
-          <FeatureItem iconName="book-open-variant" text="Dicas personalizadas de cuidado" theme={theme} />
-        </View>
-
-        <Button
-          title="Entrar com Google"
-          onPress={signInWithGoogle}
-          size="lg"
-          fullWidth
-          style={styles.button}
-        />
-
-        <Text style={[styles.footer, { color: theme.textTertiary }]}>
-          Gratuito • Sem anúncios • Privado
+        {/* Floating quote */}
+        <Text style={[styles.quote, { color: theme.onSurfaceVariant }]}>
+          {'"Nas profundezas de suas raizes, todas as flores guardam a luz."'}
         </Text>
       </Animated.View>
-    </LinearGradient>
-  );
-}
-
-function FeatureItem({ iconName, text, theme }: { iconName: React.ComponentProps<typeof MaterialCommunityIcons>['name']; text: string; theme: any }) {
-  return (
-    <View style={styles.featureItem}>
-      <MaterialCommunityIcons name={iconName} size={24} color={theme.primary} style={styles.featureIcon} />
-      <Text style={[styles.featureText, { color: theme.text }]}>{text}</Text>
     </View>
   );
 }
@@ -99,66 +117,91 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  blobContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  blob: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    opacity: 0.15,
+  },
+  blobTop: {
+    top: -80,
+    right: -60,
+  },
+  blobBottom: {
+    bottom: -40,
+    left: -80,
+  },
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: Spacing.xl,
+    padding: Spacing.lg,
   },
-  logoContainer: {
-    position: 'relative',
+  glassCard: {
+    width: '100%',
+    backgroundColor: GlassEffect.background,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  logoBadge: {
-    position: 'absolute',
-    bottom: -4,
-    right: -8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-  },
   title: {
+    fontFamily: Typography.fontFamily.headlineBold,
     fontSize: Typography.fontSize['4xl'],
-    fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.sm,
     textAlign: "center",
     letterSpacing: -0.5,
   },
   subtitle: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.base,
     textAlign: "center",
     marginBottom: Spacing.xl,
     lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
-    maxWidth: 300,
   },
-  features: {
-    width: '100%',
-    marginBottom: Spacing.xl,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-    paddingLeft: Spacing.md,
-  },
-  featureIcon: {
-    marginRight: Spacing.md,
-    width: 24,
-  },
-  featureText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  button: {
+  googleButton: {
     marginBottom: Spacing.lg,
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontFamily: Typography.fontFamily.bodySemiBold,
+    fontSize: Typography.fontSize.xs,
+    letterSpacing: 0.8,
+    marginHorizontal: Spacing.md,
+  },
   footer: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.sm,
     textAlign: 'center',
+  },
+  quote: {
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.sm,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
 });

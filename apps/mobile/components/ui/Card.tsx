@@ -6,21 +6,40 @@ interface CardProps {
   children: ReactNode;
   style?: ViewStyle;
   padding?: keyof typeof Spacing;
-  shadow?: 'sm' | 'md' | 'lg' | 'xl';
+  shadow?: 'sm' | 'md' | 'lg' | 'xl' | 'none';
+  variant?: 'elevated' | 'filled' | 'flat';
+  noPadding?: boolean;
 }
 
-export function Card({ children, style, padding = 'md', shadow = 'md' }: CardProps) {
+export function Card({
+  children,
+  style,
+  padding = 'md',
+  shadow = 'md',
+  variant = 'elevated',
+  noPadding = false,
+}: CardProps) {
   const theme = Colors.light;
+
+  const variantStyles: Record<string, ViewStyle> = {
+    elevated: {
+      backgroundColor: theme.surfaceContainerLowest,
+      ...(shadow !== 'none' ? Shadows[shadow] : {}),
+    },
+    filled: {
+      backgroundColor: theme.surfaceContainerLow,
+    },
+    flat: {
+      backgroundColor: 'transparent',
+    },
+  };
 
   return (
     <View
       style={[
         styles.card,
-        {
-          backgroundColor: theme.card,
-          padding: Spacing[padding],
-        },
-        Shadows[shadow],
+        variantStyles[variant],
+        !noPadding && { padding: Spacing[padding] },
         style,
       ]}
     >
@@ -31,6 +50,6 @@ export function Card({ children, style, padding = 'md', shadow = 'md' }: CardPro
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
   },
 });

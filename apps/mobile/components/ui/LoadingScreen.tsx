@@ -13,7 +13,7 @@ export function LoadingScreen({ message = 'Carregando...', iconName, iconColor }
   const theme = Colors.light;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
       {iconName && (
         <MaterialCommunityIcons
           name={iconName}
@@ -23,7 +23,7 @@ export function LoadingScreen({ message = 'Carregando...', iconName, iconColor }
         />
       )}
       <ActivityIndicator size="large" color={theme.primary} />
-      <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
+      <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>{message}</Text>
     </View>
   );
 }
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   },
   message: {
     marginTop: Spacing.md,
+    fontFamily: Typography.fontFamily.bodyMedium,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
   },
 });

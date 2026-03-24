@@ -1,20 +1,13 @@
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect } from "react";
-import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+import { View, ActivityIndicator } from "react-native";
+import { Colors } from "../../constants/theme";
 
-function HeaderRight() {
-  const { signOut } = useAuth();
-  return (
-    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <Text style={{ color: "#007AFF", fontSize: 16 }}>Sair</Text>
-    </TouchableOpacity>
-  );
-}
-
-export default function PlantsLayout() {
+export default function TipsLayout() {
   const { session, loading } = useAuth();
   const router = useRouter();
+  const theme = Colors.light;
 
   useEffect(() => {
     if (!loading && !session) router.replace("/(auth)/login");
@@ -22,8 +15,8 @@ export default function PlantsLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
-        <ActivityIndicator />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.surface }}>
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -31,11 +24,12 @@ export default function PlantsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerRight: () => <HeaderRight />,
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.surface },
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Dicas de Cuidado" }} />
-      <Stack.Screen name="[id]" options={{ title: "Artigo" }} />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

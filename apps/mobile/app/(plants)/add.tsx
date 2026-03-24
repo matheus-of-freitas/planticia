@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
+import { TopAppBar } from "../../components/ui/TopAppBar";
+import { EditorialHeader } from "../../components/ui/EditorialHeader";
 import { useAlert } from "../../context/AlertContext";
 
 export default function AddPlant() {
@@ -16,8 +17,8 @@ export default function AddPlant() {
     if (status !== "granted") {
       showAlert({
         type: 'warning',
-        title: 'Permissão Necessária',
-        message: 'Permissão de câmera é necessária para tirar fotos.',
+        title: 'Permissao Necessaria',
+        message: 'Permissao de camera e necessaria para tirar fotos.',
       });
       return;
     }
@@ -50,63 +51,59 @@ export default function AddPlant() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
-        <View style={styles.iconLargeContainer}>
-          <MaterialCommunityIcons name="leaf" size={80} color={Colors.light.primary} />
-        </View>
-        <Text style={[styles.title, { color: theme.text }]}>Adicionar Planta</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Use sua câmera ou escolha uma foto para identificar automaticamente sua planta
-        </Text>
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
+      <TopAppBar onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <EditorialHeader
+          label="NOVA PLANTA"
+          title="Inicie a jornada da sua planta"
+          subtitle="Nossa IA vai identificar a especie e criar um guia de cuidados personalizado"
+        />
 
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity
-            onPress={takePhoto}
-            activeOpacity={0.7}
-            style={[styles.optionCard, { backgroundColor: theme.card, ...Shadows.md }]}
-          >
-            <LinearGradient
-              colors={[theme.primary, theme.primaryLight]}
-              style={styles.iconCircle}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <MaterialCommunityIcons name="camera" size={40} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={[styles.optionTitle, { color: theme.text }]}>Tirar Foto</Text>
-            <Text style={[styles.optionDescription, { color: theme.textSecondary }]}>
-              Use a câmera para capturar
+        {/* Take Photo Card */}
+        <TouchableOpacity
+          onPress={takePhoto}
+          activeOpacity={0.7}
+          style={[styles.actionCard, { backgroundColor: theme.surfaceContainerLow }]}
+        >
+          <View style={[styles.actionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+            <MaterialCommunityIcons name="camera" size={28} color={theme.primary} />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={[styles.actionTitle, { color: theme.onSurface }]}>Tirar uma Foto</Text>
+            <Text style={[styles.actionDescription, { color: theme.onSurfaceVariant }]}>
+              Aponte sua camera para as folhas para identificação instantanea
             </Text>
-          </TouchableOpacity>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={theme.outlineVariant} />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={pickPhoto}
-            activeOpacity={0.7}
-            style={[styles.optionCard, { backgroundColor: theme.card, ...Shadows.md }]}
-          >
-            <LinearGradient
-              colors={[theme.secondary, theme.accent]}
-              style={styles.iconCircle}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <MaterialCommunityIcons name="image" size={40} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={[styles.optionTitle, { color: theme.text }]}>Escolher Foto</Text>
-            <Text style={[styles.optionDescription, { color: theme.textSecondary }]}>
-              Selecione da galeria
+        {/* Pick from Gallery Card */}
+        <TouchableOpacity
+          onPress={pickPhoto}
+          activeOpacity={0.7}
+          style={[styles.actionCard, { backgroundColor: theme.surfaceContainerLow }]}
+        >
+          <View style={[styles.actionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+            <MaterialCommunityIcons name="image-multiple" size={28} color={theme.secondary} />
+          </View>
+          <View style={styles.actionTextContainer}>
+            <Text style={[styles.actionTitle, { color: theme.onSurface }]}>Carregar da Galeria</Text>
+            <Text style={[styles.actionDescription, { color: theme.onSurfaceVariant }]}>
+              Selecione uma foto existente da sua galeria
             </Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color={theme.outlineVariant} />
+        </TouchableOpacity>
 
-        <View style={[styles.infoBox, { backgroundColor: theme.backgroundSecondary }]}>
-          <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={theme.textSecondary} style={styles.infoIcon} />
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            Para melhores resultados, tire fotos com boa iluminação e foque nas folhas
+        {/* Tip pill */}
+        <View style={[styles.tipPill, { backgroundColor: theme.surfaceContainer }]}>
+          <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color={theme.secondary} />
+          <Text style={[styles.tipText, { color: theme.onSurfaceVariant }]}>
+            Dica: Certifique-se de que a iluminacao seja natural para melhores resultados
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -116,67 +113,49 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
-    padding: Spacing.xl,
-    justifyContent: "center",
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
   },
-  iconLargeContainer: {
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: Typography.fontSize['3xl'],
-    fontWeight: Typography.fontWeight.bold,
-    marginBottom: Spacing.sm,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: Typography.fontSize.base,
-    textAlign: "center",
-    marginBottom: Spacing['2xl'],
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
-    paddingHorizontal: Spacing.md,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  optionCard: {
-    flex: 1,
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
-    alignItems: "center",
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.full,
-    justifyContent: "center",
-    alignItems: "center",
     marginBottom: Spacing.md,
   },
-  optionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
-    textAlign: "center",
-  },
-  optionDescription: {
-    fontSize: Typography.fontSize.sm,
-    textAlign: "center",
-  },
-  infoBox: {
-    flexDirection: "row",
-    padding: Spacing.md,
+  actionIconContainer: {
+    width: 56,
+    height: 56,
     borderRadius: BorderRadius.lg,
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
   },
-  infoIcon: {
+  actionTextContainer: {
+    flex: 1,
     marginRight: Spacing.sm,
   },
-  infoText: {
+  actionTitle: {
+    fontFamily: Typography.fontFamily.headlineSemiBold,
+    fontSize: Typography.fontSize.base,
+    marginBottom: 2,
+  },
+  actionDescription: {
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.sm,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
+  },
+  tipPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  tipText: {
     flex: 1,
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.sm,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },

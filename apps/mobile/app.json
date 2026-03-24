@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "description": "Cuide das suas plantas com inteligência artificial",
-    "primaryColor": "#2E7D32",
+    "primaryColor": "#173809",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.planticia.app",
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F1F8E9",
+        "backgroundColor": "#f7faf6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -46,12 +46,12 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F1F8E9",
+          "backgroundColor": "#f7faf6",
           "dark": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 200,
             "resizeMode": "contain",
-            "backgroundColor": "#1B5E20"
+            "backgroundColor": "#173809"
           }
         }
       ],
@@ -59,7 +59,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#2E7D32",
+          "color": "#173809",
           "defaultChannel": "default"
         }
       ]

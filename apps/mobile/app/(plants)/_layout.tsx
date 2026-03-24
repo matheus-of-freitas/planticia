@@ -1,20 +1,13 @@
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect } from "react";
-import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
-
-function HeaderRight() {
-  const { signOut } = useAuth();
-  return (
-    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <Text style={{ color: "#007AFF", fontSize: 16 }}>Sair</Text>
-    </TouchableOpacity>
-  );
-}
+import { View, ActivityIndicator } from "react-native";
+import { Colors } from "../../constants/theme";
 
 export default function PlantsLayout() {
   const { session, loading } = useAuth();
   const router = useRouter();
+  const theme = Colors.light;
 
   useEffect(() => {
     if (!loading && !session) router.replace("/(auth)/login");
@@ -22,8 +15,8 @@ export default function PlantsLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex:1, justifyContent:"center", alignItems:"center" }}>
-        <ActivityIndicator />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.surface }}>
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -31,14 +24,15 @@ export default function PlantsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerRight: () => <HeaderRight />,
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.surface },
       }}
     >
-      <Stack.Screen name="add" options={{ title: "Adicionar Planta" }} />
-      <Stack.Screen name="camera" options={{ title: "Tirar Foto" }} />
-      <Stack.Screen name="preview" options={{ title: "Visualizar" }} />
-      <Stack.Screen name="identify" options={{ title: "Identificação" }} />
-      <Stack.Screen name="details" options={{ title: "Detalhes" }} />
+      <Stack.Screen name="add" />
+      <Stack.Screen name="camera" />
+      <Stack.Screen name="preview" />
+      <Stack.Screen name="identify" />
+      <Stack.Screen name="details" />
     </Stack>
   );
 }

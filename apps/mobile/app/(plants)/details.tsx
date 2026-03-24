@@ -12,13 +12,17 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { rescheduleWateringNotification } from "../../libs/notifications";
 import { deletePlant } from "../../libs/deletePlant";
 import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { TopAppBar } from "../../components/ui/TopAppBar";
+import { Colors, Typography, Spacing, BorderRadius, Shadows, Gradients } from "../../constants/theme";
 import { useAlert } from "../../context/AlertContext";
+
+const theme = Colors.light;
 
 interface Plant {
   id: string;
@@ -33,6 +37,19 @@ interface Plant {
 }
 
 export default function PlantDetails() {
+  const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const [plant, setPlant] = useState<Plant | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingWateringDays, setEditingWateringDays] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [wateringHour, setWateringHour] = useState<number>(11);
+  const [editHourModalVisible, setEditHourModalVisible] = useState(false);
+  const [editingHour, setEditingHour] = useState("11");
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
+  const { showAlert } = useAlert();
+
   function isTodayWateringDay() {
     if (!plant?.last_watered_at || !plant?.watering_interval_days) return false;
     const lastWatered = new Date(plant.last_watered_at);
@@ -45,6 +62,7 @@ export default function PlantDetails() {
       nextWatering.getDate() === today.getDate()
     );
   }
+
   async function handleMarkWateredNow() {
     if (!plant) return;
     const now = new Date().toISOString();
@@ -63,13 +81,7 @@ export default function PlantDetails() {
       if (!response.ok || json.error) throw new Error(json.error || "Failed to update plant");
 
       try {
-        await rescheduleWateringNotification(
-          plant.id,
-          plant.name || "",
-          plant.watering_interval_days || 7,
-          now,
-          plant.watering_hour || 11
-        );
+        await rescheduleWateringNotification(plant.id, plant.name || "", plant.watering_interval_days || 7, now, plant.watering_hour || 11);
       } catch (notificationError) {
         console.error("Error rescheduling notification after watering:", notificationError);
       }
@@ -81,39 +93,20 @@ export default function PlantDetails() {
       setSaving(false);
     }
   }
-  const { plantId } = useLocalSearchParams<{ plantId: string }>();
-  const [plant, setPlant] = useState<Plant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingWateringDays, setEditingWateringDays] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [wateringHour, setWateringHour] = useState<number>(11);
-  const [editHourModalVisible, setEditHourModalVisible] = useState(false);
-  const [editingHour, setEditingHour] = useState("11");
-  const [deleting, setDeleting] = useState(false);
-  const router = useRouter();
-  const { showAlert } = useAlert();
 
   useEffect(() => {
     async function load() {
-      if (!plantId) {
-        setLoading(false);
-        return;
-      }
+      if (!plantId) { setLoading(false); return; }
       try {
-        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/get-details?plantId=${plantId}`, {
-          headers: await getAuthHeaders(),
-        });
+        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/get-details?plantId=${plantId}`, { headers: await getAuthHeaders() });
         const json = await res.json();
         if (!res.ok || json.error) {
-          console.error("Error loading plant:", json.error);
           showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar planta.' });
         } else {
           setPlant(json.plant);
           setWateringHour(json.plant.watering_hour || 11);
         }
-      } catch (err) {
-        console.error("Error loading plant:", err);
+      } catch {
         showAlert({ type: 'error', title: 'Erro', message: 'Falha ao carregar planta.' });
       }
       setLoading(false);
@@ -124,52 +117,26 @@ export default function PlantDetails() {
   async function handleUpdateWateringSchedule() {
     if (!plant) return;
     const days = parseInt(editingWateringDays);
-    if (isNaN(days) || days < 1) {
-      return;
-    }
+    if (isNaN(days) || days < 1) return;
 
     setSaving(true);
     try {
       const lastWatered = plant.last_watered_at || new Date().toISOString();
-      const nextTrigger = new Date(lastWatered);
-      nextTrigger.setDate(nextTrigger.getDate() + days);
-      nextTrigger.setHours(wateringHour, 0, 0, 0);
-
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
         headers: await getAuthHeaders(),
-        body: JSON.stringify({
-          plantId: plant.id,
-          updates: {
-            watering_interval_days: days,
-            watering_hour: wateringHour,
-          },
-        }),
+        body: JSON.stringify({ plantId: plant.id, updates: { watering_interval_days: days, watering_hour: wateringHour } }),
       });
       const json = await response.json();
       if (!response.ok || json.error) throw new Error(json.error || "Failed to update plant");
 
       try {
-        await rescheduleWateringNotification(
-          plant.id,
-          plant.name || "Planta",
-          days,
-          lastWatered,
-          wateringHour
-        );
+        await rescheduleWateringNotification(plant.id, plant.name || "Planta", days, lastWatered, wateringHour);
       } catch (notificationError) {
         console.error("Error rescheduling notification:", notificationError);
       }
 
-      setPlant((prev) =>
-        prev
-          ? {
-              ...prev,
-              watering_interval_days: days,
-              watering_hour: wateringHour,
-            }
-          : null
-      );
+      setPlant((prev) => prev ? { ...prev, watering_interval_days: days, watering_hour: wateringHour } : null);
       setEditModalVisible(false);
     } catch (err) {
       console.error(err);
@@ -193,7 +160,6 @@ export default function PlantDetails() {
     if (isNaN(parsed)) return;
     const hour = Math.max(0, Math.min(23, parsed));
     setSaving(true);
-
     try {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
@@ -201,7 +167,6 @@ export default function PlantDetails() {
         body: JSON.stringify({ plantId: plant?.id, updates: { watering_hour: hour } }),
       });
       const json = await response.json();
-
       if (response.ok && !json.error) {
         setWateringHour(hour);
         setPlant((prev) => (prev ? { ...prev, watering_hour: hour } : null));
@@ -217,11 +182,10 @@ export default function PlantDetails() {
 
   function handleDeletePlant() {
     if (!plant) return;
-
     showAlert({
       type: 'confirm',
       title: 'Excluir Planta',
-      message: `Tem certeza que deseja excluir ${plant.name}? Esta ação não pode ser desfeita.`,
+      message: `Tem certeza que deseja excluir ${plant.name}? Esta acao nao pode ser desfeita.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       onConfirm: async () => {
@@ -229,15 +193,13 @@ export default function PlantDetails() {
         try {
           await deletePlant(plant.id);
           router.replace("/");
-        } catch (err) {
-          console.error(err);
+        } catch {
           showAlert({ type: 'error', title: 'Erro', message: 'Falha ao excluir planta.' });
           setDeleting(false);
         }
       },
     });
   }
-
 
   if (loading) {
     return (
@@ -251,7 +213,7 @@ export default function PlantDetails() {
   if (!plant) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Planta não encontrada</Text>
+        <Text style={styles.errorText}>Planta nao encontrada</Text>
         <Button title="Voltar" onPress={() => router.back()} variant="outline" />
       </View>
     );
@@ -260,194 +222,179 @@ export default function PlantDetails() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {plant.image_url ? (
-          <Image
-            source={{ uri: plant.image_url }}
-            style={styles.plantImage}
-            resizeMode="cover"
-          />
-        ) : null}
+        {/* Hero image with gradient overlay */}
+        <View style={styles.heroContainer}>
+          {plant.image_url && (
+            <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
+          )}
+          <LinearGradient colors={[...Gradients.heroOverlay]} style={styles.heroGradient} />
+          <View style={styles.heroOverlayContent}>
+            <TopAppBar onBack={() => router.back()} title="" />
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroName}>{plant.name}</Text>
+              <Text style={styles.heroScientific}>{plant.scientific_name}</Text>
+            </View>
+          </View>
+        </View>
 
-        <Text style={styles.plantName}>{plant.name}</Text>
-        <Text style={styles.scientificName}>{plant.scientific_name}</Text>
-
-        <Card style={styles.careCard}>
-          <Text style={styles.sectionTitle}>Informações de Cuidado</Text>
-
-          <View style={styles.wateringRow}>
-            <Text style={styles.infoText}>
-              <Text style={styles.infoLabel}>Rega:</Text> A cada{" "}
-            </Text>
-            <TouchableOpacity onPress={openEditModal} style={styles.pillButton}>
-              <Text style={styles.pillButtonText}>
-                {plant.watering_interval_days}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.infoText}>, às </Text>
-            <TouchableOpacity onPress={openEditHourModal} style={styles.pillButton}>
-              <Text style={styles.pillButtonText}>
-                {(plant.watering_hour || 11).toString().padStart(2, "0")}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.infoText}>h</Text>
+        <View style={styles.contentPadding}>
+          {/* Action buttons */}
+          <View style={styles.actionRow}>
+            <Button
+              title="Diagnosticar"
+              onPress={() => router.push({ pathname: "/(diagnosis)/diagnose", params: { plantId: plant.id } })}
+              variant="primary"
+              size="md"
+              icon={<MaterialCommunityIcons name="stethoscope" size={18} color={theme.onPrimary} />}
+              style={styles.actionButton}
+            />
+            <Button
+              title="Dicas"
+              onPress={() => router.push({ pathname: "/(tips)", params: { plantId: plant.id } })}
+              variant="outline"
+              size="md"
+              icon={<MaterialCommunityIcons name="lightbulb-on-outline" size={18} color={theme.primary} />}
+              style={styles.actionButton}
+            />
           </View>
 
-          <Modal
-            visible={editHourModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setEditHourModalVisible(false)}>
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setEditHourModalVisible(false)}>
-              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400 }}>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Editar Horário da Rega</Text>
-                  <Text style={styles.modalSubtitle}>
-                    Defina o horário do lembrete de rega (0-23h)
+          {/* Care info bento grid */}
+          <Text style={styles.sectionTitle}>Cuidados</Text>
+          <View style={styles.careGrid}>
+            {/* Watering card */}
+            <Card variant="filled" style={styles.careCardFull}>
+              <View style={styles.careCardHeader}>
+                <MaterialCommunityIcons name="water" size={22} color={theme.info} />
+                <Text style={styles.careCardTitle}>Rega</Text>
+              </View>
+              <View style={styles.wateringRow}>
+                <Text style={styles.careText}>A cada </Text>
+                <TouchableOpacity onPress={openEditModal} style={[styles.pillButton, { backgroundColor: theme.primaryContainer }]}>
+                  <Text style={[styles.pillButtonText, { color: theme.onPrimaryContainer }]}>
+                    {plant.watering_interval_days} {plant.watering_interval_days === 1 ? 'dia' : 'dias'}
                   </Text>
-
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      value={editingHour}
-                      onChangeText={(text) => {
-                        const num = text.replace(/[^0-9]/g, "");
-                        if (num.length > 0) {
-                          const val = Math.max(0, Math.min(23, parseInt(num)));
-                          setEditingHour(val.toString());
-                        } else {
-                          setEditingHour("");
-                        }
-                      }}
-                      keyboardType="numeric"
-                      placeholder="11"
-                      autoFocus
-                      selectTextOnFocus
-                      maxLength={2}
-                    />
-                    <Text style={styles.inputSuffix}>h</Text>
-                  </View>
-
-                  <Button
-                    title={saving ? "Salvando..." : "Salvar"}
-                    onPress={handleUpdateHour}
-                    disabled={saving}
-                    fullWidth
-                  />
-                </View>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </Modal>
-
-          {plant.light_preference && (
-            <Text style={styles.infoText}>
-              <Text style={styles.infoLabel}>Luz:</Text>{" "}
-              {plant.light_preference.charAt(0).toUpperCase() + plant.light_preference.slice(1)}
-            </Text>
-          )}
-
-          {plant.last_watered_at && (
-            <View style={styles.lastWateredRow}>
-              <Text style={styles.lastWateredText}>
-                Última rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
-              </Text>
-              {isTodayWateringDay() && (
-                <TouchableOpacity
-                  onPress={handleMarkWateredNow}
-                  disabled={saving}
-                  style={[styles.waterButton, saving && styles.waterButtonDisabled]}
-                  accessibilityLabel="Reguei agora">
-                  {saving ? (
-                    <ActivityIndicator color="#fff" size={18} />
-                  ) : (
-                    <MaterialCommunityIcons name="water" size={20} color="#fff" />
-                  )}
                 </TouchableOpacity>
+                <Text style={styles.careText}> as </Text>
+                <TouchableOpacity onPress={openEditHourModal} style={[styles.pillButton, { backgroundColor: theme.primaryContainer }]}>
+                  <Text style={[styles.pillButtonText, { color: theme.onPrimaryContainer }]}>
+                    {(plant.watering_hour || 11).toString().padStart(2, "0")}h
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {plant.last_watered_at && (
+                <View style={styles.lastWateredRow}>
+                  <Text style={styles.lastWateredText}>
+                    Ultima rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
+                  </Text>
+                  {isTodayWateringDay() && (
+                    <TouchableOpacity
+                      onPress={handleMarkWateredNow}
+                      disabled={saving}
+                      style={[styles.waterButton, { backgroundColor: theme.primaryContainer }, saving && { opacity: 0.7 }]}
+                      accessibilityLabel="Reguei agora"
+                    >
+                      {saving ? (
+                        <ActivityIndicator color={theme.onPrimaryContainer} size={18} />
+                      ) : (
+                        <MaterialCommunityIcons name="water" size={20} color={theme.onPrimaryContainer} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
-            </View>
+            </Card>
+
+            {/* Light card */}
+            {plant.light_preference && (
+              <Card variant="filled" style={styles.careCardHalf}>
+                <MaterialCommunityIcons name="white-balance-sunny" size={22} color={theme.warning} />
+                <Text style={styles.careCardTitle}>Luz</Text>
+                <Text style={styles.careCardValue}>
+                  {plant.light_preference.charAt(0).toUpperCase() + plant.light_preference.slice(1)}
+                </Text>
+              </Card>
+            )}
+          </View>
+
+          {/* Description */}
+          {plant.description && (
+            <>
+              <Text style={styles.sectionTitle}>Resumo da Planta</Text>
+              <Card variant="filled" style={styles.descriptionCard}>
+                <Text style={styles.descriptionText}>{plant.description}</Text>
+              </Card>
+            </>
           )}
-        </Card>
 
-        {plant.description && (
-          <Card style={styles.descriptionCard}>
-            <Text style={styles.sectionTitle}>Dicas de Cuidado</Text>
-            <Text style={styles.descriptionText}>{plant.description}</Text>
-          </Card>
-        )}
-
-        <View style={styles.actionsContainer}>
-          <Button
-            title="Diagnosticar Problemas"
-            onPress={() =>
-              router.push({
-                pathname: "/(diagnosis)/diagnose",
-                params: { plantId: plant.id },
-              })
-            }
-            variant="primary"
-            fullWidth
-          />
-          <Button
-            title="Mais Dicas de Cuidado"
-            onPress={() =>
-              router.push({
-                pathname: "/(tips)",
-                params: { plantId: plant.id },
-              })
-            }
-            variant="outline"
-            fullWidth
-          />
+          {/* Delete */}
           <Button
             title={deleting ? "Excluindo..." : "Excluir Planta"}
             onPress={handleDeletePlant}
             disabled={deleting}
             variant="ghost"
             fullWidth
-            textStyle={styles.deleteButtonText}
+            textStyle={{ color: theme.error }}
+            style={{ marginTop: Spacing.xl }}
           />
         </View>
       </ScrollView>
 
-      <Modal
-        visible={editModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditModalVisible(false)}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setEditModalVisible(false)}>
+      {/* Edit watering days modal */}
+      <Modal visible={editModalVisible} transparent animationType="fade" onRequestClose={() => setEditModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditModalVisible(false)}>
           <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400 }}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Editar Cronograma de Rega</Text>
-              <Text style={styles.modalSubtitle}>
-                Defina a cada quantos dias você quer regar esta planta
-              </Text>
-
+              <Text style={styles.modalSubtitle}>Defina a cada quantos dias voce quer regar esta planta</Text>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
                   value={editingWateringDays}
                   onChangeText={(text) => {
-                    setEditingWateringDays(text);
+                    const num = text.replace(/[^0-9]/g, "");
+                    setEditingWateringDays(num);
                   }}
                   keyboardType="numeric"
-                  placeholder="0"
+                  placeholder="1"
                   autoFocus
                   selectTextOnFocus
                 />
                 <Text style={styles.inputSuffix}>dias</Text>
               </View>
+              <Button title={saving ? "Salvando..." : "Salvar"} onPress={handleUpdateWateringSchedule} disabled={saving} fullWidth />
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
-              <Button
-                title={saving ? "Salvando..." : "Salvar"}
-                onPress={handleUpdateWateringSchedule}
-                disabled={saving}
-                fullWidth
-              />
+      {/* Edit hour modal */}
+      <Modal visible={editHourModalVisible} transparent animationType="fade" onRequestClose={() => setEditHourModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setEditHourModalVisible(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400 }}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Editar Horario da Rega</Text>
+              <Text style={styles.modalSubtitle}>Defina o horario do lembrete de rega (0-23h)</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={editingHour}
+                  onChangeText={(text) => {
+                    const num = text.replace(/[^0-9]/g, "");
+                    if (num.length > 0) {
+                      setEditingHour(Math.max(0, Math.min(23, parseInt(num))).toString());
+                    } else {
+                      setEditingHour("");
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="11"
+                  autoFocus
+                  selectTextOnFocus
+                  maxLength={2}
+                />
+                <Text style={styles.inputSuffix}>h</Text>
+              </View>
+              <Button title={saving ? "Salvando..." : "Salvar"} onPress={handleUpdateHour} disabled={saving} fullWidth />
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -456,193 +403,54 @@ export default function PlantDetails() {
   );
 }
 
-const theme = Colors.light;
-
 const styles = StyleSheet.create({
-  // Layout
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-    padding: Spacing.md,
-  },
-  scrollContent: {
-    alignItems: "center",
-    padding: Spacing.md,
-    paddingBottom: 100,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: theme.background,
-    gap: Spacing.md,
-  },
+  container: { flex: 1, backgroundColor: theme.surface },
+  scrollContent: { paddingBottom: Spacing.xl },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.surface, gap: Spacing.md },
+  loadingText: { fontFamily: Typography.fontFamily.bodyMedium, fontSize: Typography.fontSize.base, color: theme.onSurfaceVariant, marginTop: Spacing.sm },
+  errorText: { fontFamily: Typography.fontFamily.bodyMedium, fontSize: Typography.fontSize.lg, color: theme.onSurfaceVariant, marginBottom: Spacing.md },
 
-  // Loading & Error
-  loadingText: {
-    fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
-    marginTop: Spacing.sm,
-  },
-  errorText: {
-    fontSize: Typography.fontSize.lg,
-    color: theme.textSecondary,
-    marginBottom: Spacing.md,
-  },
+  // Hero
+  heroContainer: { width: '100%', height: 400, position: 'relative' },
+  heroImage: { width: '100%', height: '100%' },
+  heroGradient: { ...StyleSheet.absoluteFillObject },
+  heroOverlayContent: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
+  heroTextContainer: { padding: Spacing.lg, paddingBottom: Spacing.xl },
+  heroName: { fontFamily: Typography.fontFamily.headlineBold, fontSize: Typography.fontSize['3xl'], color: '#ffffff', marginBottom: Spacing.xs },
+  heroScientific: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.base, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic' },
 
-  // Plant header
-  plantImage: {
-    width: "100%",
-    height: 300,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.lg,
-  },
-  plantName: {
-    fontSize: Typography.fontSize["2xl"],
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
-    marginBottom: Spacing.sm,
-    textAlign: "center",
-  },
-  scientificName: {
-    fontStyle: "italic",
-    marginBottom: Spacing.lg,
-    textAlign: "center",
-    color: theme.textSecondary,
-    fontSize: Typography.fontSize.base,
-  },
+  contentPadding: { padding: Spacing.lg },
 
-  // Care info card
-  careCard: {
-    marginBottom: Spacing.md,
-    width: "100%",
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: theme.text,
-    marginBottom: Spacing.md,
-  },
-  wateringRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  infoText: {
-    fontSize: Typography.fontSize.base,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
-    color: theme.text,
-    marginBottom: Spacing.sm,
-  },
-  infoLabel: {
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  pillButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    backgroundColor: theme.primary,
-    borderRadius: BorderRadius.md,
-    marginHorizontal: Spacing.xs,
-  },
-  pillButtonText: {
-    color: "#fff",
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
-  },
+  // Action row
+  actionRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xl },
+  actionButton: { flex: 1 },
 
-  // Last watered row
-  lastWateredRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: Spacing.sm,
-    justifyContent: "space-between",
-  },
-  lastWateredText: {
-    fontSize: Typography.fontSize.sm,
-    color: theme.textTertiary,
-    flex: 1,
-  },
-  waterButton: {
-    marginLeft: Spacing.md,
-    backgroundColor: theme.primary,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  waterButtonDisabled: {
-    opacity: 0.7,
-  },
+  // Care grid
+  sectionTitle: { fontFamily: Typography.fontFamily.headlineSemiBold, fontSize: Typography.fontSize.lg, color: theme.onSurface, marginBottom: Spacing.md },
+  careGrid: { gap: Spacing.md, marginBottom: Spacing.xl },
+  careCardFull: { width: '100%' },
+  careCardHalf: { alignItems: 'flex-start', gap: Spacing.xs },
+  careCardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
+  careCardTitle: { fontFamily: Typography.fontFamily.bodySemiBold, fontSize: Typography.fontSize.sm, color: theme.onSurface },
+  careCardValue: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, color: theme.onSurfaceVariant },
+  careText: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.base, color: theme.onSurface },
+  wateringRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: Spacing.sm },
+  pillButton: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm + 2, borderRadius: BorderRadius.full, marginHorizontal: 2 },
+  pillButtonText: { fontFamily: Typography.fontFamily.bodySemiBold, fontSize: Typography.fontSize.sm },
+  lastWateredRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
+  lastWateredText: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, color: theme.onSurfaceVariant, flex: 1 },
+  waterButton: { marginLeft: Spacing.md, borderRadius: BorderRadius.full, padding: Spacing.sm, justifyContent: 'center', alignItems: 'center' },
 
-  // Description card
-  descriptionCard: {
-    marginBottom: Spacing.md,
-    width: "100%",
-  },
-  descriptionText: {
-    fontSize: Typography.fontSize.sm + 1,
-    lineHeight: 22,
-    color: theme.textSecondary,
-  },
-
-  // Actions
-  actionsContainer: {
-    marginTop: Spacing.lg,
-    gap: Spacing.md,
-    width: "100%",
-  },
-  deleteButtonText: {
-    color: theme.error,
-  },
+  // Description
+  descriptionCard: { marginBottom: Spacing.md },
+  descriptionText: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, lineHeight: 22, color: theme.onSurfaceVariant },
 
   // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: theme.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: Spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: theme.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    width: "100%",
-    maxWidth: 400,
-    ...Shadows.lg,
-  },
-  modalTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
-    marginBottom: Spacing.sm,
-    textAlign: "center",
-  },
-  modalSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: theme.textSecondary,
-    marginBottom: Spacing.lg,
-    textAlign: "center",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: Typography.fontSize.lg,
-    textAlign: "center",
-    color: theme.text,
-  },
-  inputSuffix: {
-    fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
-  },
+  modalOverlay: { flex: 1, backgroundColor: theme.overlay, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  modalContent: { backgroundColor: theme.surfaceContainerLowest, borderRadius: BorderRadius['2xl'], padding: Spacing.lg, width: '100%', maxWidth: 400, ...Shadows.lg },
+  modalTitle: { fontFamily: Typography.fontFamily.headlineBold, fontSize: Typography.fontSize.xl, color: theme.onSurface, marginBottom: Spacing.sm, textAlign: 'center' },
+  modalSubtitle: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, color: theme.onSurfaceVariant, marginBottom: Spacing.lg, textAlign: 'center' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg, gap: Spacing.md },
+  input: { flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: BorderRadius.lg, padding: Spacing.md, fontSize: Typography.fontSize.lg, textAlign: 'center', color: theme.onSurface, fontFamily: Typography.fontFamily.bodyMedium },
+  inputSuffix: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.base, color: theme.onSurfaceVariant },
 });

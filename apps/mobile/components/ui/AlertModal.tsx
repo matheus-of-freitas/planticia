@@ -78,7 +78,7 @@ export function AlertModal({ visible, config, onDismiss }: AlertModalProps) {
           onPress={(e) => e.stopPropagation()}
           style={styles.cardWrapper}
         >
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme.surfaceContainerLowest }]}>
             <View style={[styles.iconContainer, { backgroundColor: iconColor + '1A' }]}>
               <MaterialCommunityIcons
                 name={iconMap[config.type]}
@@ -87,8 +87,8 @@ export function AlertModal({ visible, config, onDismiss }: AlertModalProps) {
               />
             </View>
 
-            <Text style={styles.title}>{config.title}</Text>
-            <Text style={styles.message}>{config.message}</Text>
+            <Text style={[styles.title, { color: theme.onSurface }]}>{config.title}</Text>
+            <Text style={[styles.message, { color: theme.onSurfaceVariant }]}>{config.message}</Text>
 
             <View style={isConfirm ? styles.buttonRow : styles.buttonSingle}>
               {isConfirm && (
@@ -110,7 +110,7 @@ export function AlertModal({ visible, config, onDismiss }: AlertModalProps) {
                   isConfirm && styles.confirmButton,
                   isConfirm && { backgroundColor: theme.error },
                 ]}
-                textStyle={isConfirm ? { color: '#FFFFFF' } : undefined}
+                textStyle={isConfirm ? { color: theme.onError } : undefined}
               />
             </View>
           </View>
@@ -135,8 +135,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   card: {
-    backgroundColor: theme.card,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['2xl'],
     padding: Spacing.lg,
     alignItems: 'center',
     ...Shadows.lg,
@@ -150,15 +149,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   title: {
+    fontFamily: Typography.fontFamily.headlineBold,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   message: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
     textAlign: 'center',
     lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
     marginBottom: Spacing.lg,

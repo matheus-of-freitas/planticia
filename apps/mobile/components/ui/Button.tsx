@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
   TouchableOpacity,
   Text,
+  View,
   ActivityIndicator,
   ViewStyle,
   TextStyle,
@@ -16,6 +17,7 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
+  icon?: ReactNode;
   style?: ViewStyle;
   textStyle?: TextStyle;
 }
@@ -28,6 +30,7 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  icon,
   style,
   textStyle,
 }: ButtonProps) {
@@ -35,16 +38,17 @@ export function Button({
 
   const getButtonStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
-      borderRadius: BorderRadius.lg,
+      borderRadius: BorderRadius.full,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      gap: Spacing.sm,
     };
 
     const sizeStyles: Record<string, ViewStyle> = {
-      sm: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 36 },
+      sm: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, minHeight: 36 },
       md: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, minHeight: 48 },
-      lg: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg, minHeight: 56 },
+      lg: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md + 4, minHeight: 56 },
     };
 
     const variantStyles: Record<string, ViewStyle> = {
@@ -53,13 +57,13 @@ export function Button({
         ...Shadows.md,
       },
       secondary: {
-        backgroundColor: theme.secondary,
+        backgroundColor: theme.secondaryContainer,
         ...Shadows.sm,
       },
       outline: {
         backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderColor: theme.primary,
+        borderWidth: 1.5,
+        borderColor: theme.outlineVariant,
       },
       ghost: {
         backgroundColor: 'transparent',
@@ -85,14 +89,14 @@ export function Button({
 
   const getTextStyle = (): TextStyle => {
     const sizeStyles: Record<string, TextStyle> = {
-      sm: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.medium },
-      md: { fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.semibold },
-      lg: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold },
+      sm: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.bodyMedium },
+      md: { fontSize: Typography.fontSize.base, fontFamily: Typography.fontFamily.bodySemiBold },
+      lg: { fontSize: Typography.fontSize.lg, fontFamily: Typography.fontFamily.bodySemiBold },
     };
 
     const variantStyles: Record<string, TextStyle> = {
-      primary: { color: '#FFFFFF' },
-      secondary: { color: '#FFFFFF' },
+      primary: { color: theme.onPrimary },
+      secondary: { color: theme.onSecondaryContainer },
       outline: { color: theme.primary },
       ghost: { color: theme.primary },
     };
@@ -113,10 +117,13 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'outline' || variant === 'ghost' ? theme.primary : '#FFFFFF'}
+          color={variant === 'outline' || variant === 'ghost' ? theme.primary : theme.onPrimary}
         />
       ) : (
-        <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+        <>
+          {icon && <View>{icon}</View>}
+          <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+        </>
       )}
     </TouchableOpacity>
   );

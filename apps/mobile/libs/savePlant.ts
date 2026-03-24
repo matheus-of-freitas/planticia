@@ -4,6 +4,7 @@ import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "./config";
 
 interface SavePlantParams {
   imageUrl: string;
+  userImageUrl?: string | null;
   species: string;
   commonName?: string | null;
   confidence?: number;
@@ -19,6 +20,7 @@ interface SavePlantParams {
  */
 export async function savePlant({
   imageUrl,
+  userImageUrl,
   species,
   commonName,
   wateringIntervalDays,
@@ -50,6 +52,7 @@ export async function savePlant({
     headers,
     body: JSON.stringify({
       imageUrl,
+      userImageUrl: userImageUrl || null,
       species,
       commonName,
       wateringIntervalDays: wateringDays,

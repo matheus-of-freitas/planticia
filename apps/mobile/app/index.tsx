@@ -9,16 +9,20 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Card } from "../components/ui/Card";
 import { FAB } from "../components/ui/FAB";
+import { TopAppBar } from "../components/ui/TopAppBar";
+import { EditorialHeader } from "../components/ui/EditorialHeader";
 import { Colors, Typography, Spacing, BorderRadius } from "../constants/theme";
 
 interface Plant {
   id: string;
   name: string;
+  species?: string;
   image_url: string;
+  watering_frequency_days?: number;
 }
 
 export default function Index() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, signOut } = useAuth();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -99,28 +103,40 @@ export default function Index() {
 
   if (plants.length === 0) {
     return (
-      <EmptyState
-        icon="🌱"
-        title="Nenhuma planta ainda"
-        message="Comece sua coleção adicionando sua primeira planta"
-        actionLabel="Adicionar Planta"
-        onAction={() => router.push("/(plants)/add")}
-      />
+      <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <TopAppBar
+          showBack={false}
+          rightIcon="logout"
+          onRightPress={signOut}
+        />
+        <EmptyState
+          icon="🌱"
+          title="Nenhuma planta ainda"
+          message="Comece sua colecao adicionando sua primeira planta"
+          actionLabel="Adicionar Planta"
+          onAction={() => router.push("/(plants)/add")}
+        />
+      </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundSecondary }]}>
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
+      <TopAppBar
+        showBack={false}
+        rightIcon="logout"
+        onRightPress={signOut}
+      />
       <FlatList
         data={plants}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Minhas Plantas</Text>
-            <Text style={[styles.headerCount, { color: theme.textSecondary }]}>
-              {plants.length} {plants.length === 1 ? 'planta' : 'plantas'}
-            </Text>
-          </View>
+          <EditorialHeader
+            label="CATALOGO"
+            title="Minhas Plantas"
+            subtitle={`${plants.length} ${plants.length === 1 ? 'planta no' : 'plantas no'} seu jardim`}
+            style={styles.header}
+          />
         }
         refreshControl={
           <RefreshControl
@@ -133,6 +149,7 @@ export default function Index() {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity
+            style={styles.cardWrapper}
             onPress={() =>
               router.push({
                 pathname: "/(plants)/details",
@@ -141,34 +158,44 @@ export default function Index() {
             }
             activeOpacity={0.7}
           >
-            <Card style={styles.plantCard} padding="md">
-              <View style={styles.plantCardContent}>
-                {item.image_url ? (
-                  <Image
-                    source={{ uri: item.image_url }}
-                    style={styles.plantImage}
-                  />
-                ) : (
-                  <View style={[styles.plantImage, styles.plantImagePlaceholder, { backgroundColor: theme.backgroundTertiary }]}>
-                    <MaterialCommunityIcons name="flower" size={32} color={theme.textTertiary} />
+            <Card style={styles.plantCard} noPadding>
+              {item.image_url ? (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.plantImage}
+                />
+              ) : (
+                <View style={[styles.plantImage, styles.plantImagePlaceholder, { backgroundColor: theme.surfaceContainerLow }]}>
+                  <MaterialCommunityIcons name="flower" size={40} color={theme.outlineVariant} />
+                </View>
+              )}
+              <View style={styles.plantInfo}>
+                <Text style={[styles.plantName, { color: theme.onSurface }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.species && (
+                  <Text style={[styles.plantSpecies, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+                    {item.species}
+                  </Text>
+                )}
+                {item.watering_frequency_days && (
+                  <View style={[styles.badge, { backgroundColor: theme.secondaryContainer }]}>
+                    <MaterialCommunityIcons name="water-outline" size={12} color={theme.onSecondaryContainer} />
+                    <Text style={[styles.badgeText, { color: theme.onSecondaryContainer }]}>
+                      A cada {item.watering_frequency_days}d
+                    </Text>
                   </View>
                 )}
-                <View style={styles.plantInfo}>
-                  <Text style={[styles.plantName, { color: theme.text }]}>
-                    {item.name}
-                  </Text>
-                  <Text style={[styles.plantSubtitle, { color: theme.textSecondary }]}>
-                    Toque para ver detalhes
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={theme.textTertiary} />
               </View>
             </Card>
           </TouchableOpacity>
         )}
       />
 
-      <FAB onPress={() => router.push("/(plants)/add")} />
+      <FAB
+        onPress={() => router.push("/(plants)/add")}
+        label="Adicionar Planta"
+      />
     </View>
   );
 }
@@ -178,46 +205,55 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
-  plantCard: {
+  header: {
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  cardWrapper: {
+    width: '100%',
     marginBottom: Spacing.md,
   },
-  plantCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
+  plantCard: {
+    overflow: 'hidden',
   },
   plantImage: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.lg,
-    marginRight: Spacing.md,
+    width: '100%',
+    height: 160,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   plantImagePlaceholder: {
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
   plantInfo: {
-    flex: 1,
+    padding: Spacing.md,
   },
   plantName: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs / 2,
+    fontFamily: Typography.fontFamily.headlineSemiBold,
+    fontSize: Typography.fontSize.base,
+    marginBottom: 2,
   },
-  plantSubtitle: {
-    fontSize: Typography.fontSize.sm,
+  plantSpecies: {
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.xs,
+    fontStyle: 'italic',
+    marginBottom: Spacing.sm,
   },
-  header: {
-    marginBottom: Spacing.md,
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
   },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-  },
-  headerCount: {
-    fontSize: Typography.fontSize.sm,
-    marginTop: Spacing.xs / 2,
+  badgeText: {
+    fontFamily: Typography.fontFamily.bodyMedium,
+    fontSize: Typography.fontSize.xs - 1,
   },
 });

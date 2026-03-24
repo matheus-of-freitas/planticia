@@ -16,9 +16,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   const logoRotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Logo animation sequence
     Animated.sequence([
-      // Initial fade in and scale
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -32,15 +30,12 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           useNativeDriver: true,
         }),
       ]),
-      // Subtle rotation
       Animated.timing(logoRotateAnim, {
         toValue: 1,
         duration: 400,
         useNativeDriver: true,
       }),
-      // Hold for a moment
       Animated.delay(400),
-      // Fade out
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 400,
@@ -57,7 +52,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <Animated.View
         style={[
           styles.content,
@@ -74,8 +69,8 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
       </Animated.View>
 
       <Animated.View style={[styles.textContainer, { opacity: fadeAnim }]}>
-        <Text style={[styles.title, { color: theme.primary }]}>Plantícia</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+        <Text style={[styles.title, { color: theme.primary }]}>Planticia</Text>
+        <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>
           Cuide das suas plantas
         </Text>
       </Animated.View>
@@ -97,13 +92,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   title: {
+    fontFamily: Typography.fontFamily.headlineBold,
     fontSize: Typography.fontSize['4xl'],
-    fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.xs,
     letterSpacing: -0.5,
   },
   subtitle: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.regular,
   },
 });

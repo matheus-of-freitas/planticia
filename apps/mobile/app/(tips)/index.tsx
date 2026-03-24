@@ -10,13 +10,15 @@ import {
   Image,
   Animated,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../../libs/supabaseClient";
 import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { getCareTips, CareTips } from "../../libs/getCareTips";
 import { Button } from "../../components/ui/Button";
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from "../../constants/theme";
+import { TopAppBar } from "../../components/ui/TopAppBar";
+import { EditorialHeader } from "../../components/ui/EditorialHeader";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
 import { useAlert } from "../../context/AlertContext";
 
 const theme = Colors.light;
@@ -30,6 +32,7 @@ interface Plant {
 
 export default function Tips() {
   const params = useLocalSearchParams<{ plantId?: string }>();
+  const router = useRouter();
 
   const [step, setStep] = useState<"select" | "loading" | "display">("select");
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -137,54 +140,70 @@ export default function Tips() {
     setCareTips(null);
   }
 
+  // ── Select Step ──
   if (step === "select") {
     if (loading) {
       return (
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: theme.surface }]}>
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={styles.loadingText}>Carregando plantas...</Text>
+          <Text style={[styles.loadingText, { color: theme.onSurfaceVariant }]}>
+            Carregando plantas...
+          </Text>
         </View>
       );
     }
 
     if (plants.length === 0) {
       return (
-        <View style={styles.centerContainer}>
-          <MaterialCommunityIcons name="sprout" size={64} color={theme.primary} />
-          <Text style={styles.emptyTitle}>Nenhuma planta cadastrada</Text>
-          <Text style={styles.emptySubtitle}>
-            Adicione plantas primeiro para ver dicas de cuidado
-          </Text>
+        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+          <TopAppBar onBack={() => router.back()} />
+          <View style={styles.emptyContainer}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.secondaryContainer }]}>
+              <MaterialCommunityIcons name="sprout" size={40} color={theme.secondary} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.onSurface }]}>
+              Nenhuma planta cadastrada
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: theme.onSurfaceVariant }]}>
+              Adicione plantas primeiro para ver dicas de cuidado
+            </Text>
+          </View>
         </View>
       );
     }
 
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Dicas de Cuidado</Text>
-          <Text style={styles.headerSubtitle}>
-            Selecione uma planta para ver dicas detalhadas
-          </Text>
-        </View>
-
+      <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <TopAppBar onBack={() => router.back()} />
         <FlatList
           data={plants}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <EditorialHeader
+              label="CUIDADOS"
+              title="Dicas de Cuidado"
+              subtitle="Selecione uma planta para ver dicas detalhadas"
+            />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.plantCard}
-              onPress={() => handleSelectPlant(item)}>
+              style={[styles.plantCard, { backgroundColor: theme.surfaceContainerLow }]}
+              onPress={() => handleSelectPlant(item)}
+              activeOpacity={0.7}
+            >
               {item.image_url && (
                 <Image source={{ uri: item.image_url }} style={styles.plantImage} />
               )}
               <View style={styles.plantInfo}>
-                <Text style={styles.plantName}>{item.name}</Text>
+                <Text style={[styles.plantName, { color: theme.onSurface }]}>{item.name}</Text>
                 {item.scientific_name && (
-                  <Text style={styles.plantScientific}>{item.scientific_name}</Text>
+                  <Text style={[styles.plantScientific, { color: theme.onSurfaceVariant }]}>
+                    {item.scientific_name}
+                  </Text>
                 )}
               </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color={theme.outlineVariant} />
             </TouchableOpacity>
           )}
         />
@@ -192,6 +211,7 @@ export default function Tips() {
     );
   }
 
+  // ── Loading Step ──
   if (step === "loading") {
     const progressWidth = progress.interpolate({
       inputRange: [0, 100],
@@ -199,168 +219,215 @@ export default function Tips() {
     });
 
     return (
-      <View style={styles.centerContainer}>
-        <MaterialCommunityIcons name="lightbulb-on" size={64} color={theme.primary} style={{ marginBottom: Spacing.xl }} />
-        <Text style={styles.analyzingText}>Buscando dicas de cuidado...</Text>
-        <Text style={styles.analyzingSubtext}>
+      <View style={[styles.centerContainer, { backgroundColor: theme.surface }]}>
+        <View style={[styles.iconCircle, { backgroundColor: theme.secondaryContainer }]}>
+          <MaterialCommunityIcons name="lightbulb-on" size={40} color={theme.secondary} />
+        </View>
+        <Text style={[styles.analyzingText, { color: theme.onSurface }]}>
+          Buscando dicas de cuidado...
+        </Text>
+        <Text style={[styles.analyzingSubtext, { color: theme.onSurfaceVariant }]}>
           Preparando informacoes detalhadas para {selectedPlant?.name}
         </Text>
 
-        <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBarContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
           <Animated.View
             style={[
               styles.progressBar,
-              { width: progressWidth },
+              { width: progressWidth, backgroundColor: theme.primaryContainer },
             ]}
           />
         </View>
 
-        <Text style={styles.analyzingNote}>
+        <Text style={[styles.analyzingNote, { color: theme.outlineVariant }]}>
           Isso pode levar alguns segundos...
         </Text>
       </View>
     );
   }
 
+  // ── Display Step ──
   if (step === "display" && careTips) {
     return (
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.tipsContainer}>
-          <View style={styles.tipsHeader}>
-            <Text style={styles.tipsTitle}>{careTips.plantName}</Text>
-            {careTips.scientificName && (
-              <Text style={styles.tipsScientific}>{careTips.scientificName}</Text>
-            )}
-          </View>
+      <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <TopAppBar onBack={resetTips} />
+        <ScrollView contentContainerStyle={styles.tipsContent}>
+          <EditorialHeader
+            label="GUIA DE CUIDADOS"
+            title={careTips.plantName}
+            subtitle={careTips.scientificName || undefined}
+          />
 
           {careTips.toxicityWarning && (
-            <View style={styles.warningBox}>
-              <MaterialCommunityIcons name="alert" size={24} color={theme.warning} style={{ marginRight: Spacing.sm }} />
-              <Text style={styles.warningText}>{careTips.toxicityWarning}</Text>
+            <View style={[styles.warningBox, { backgroundColor: theme.errorContainer }]}>
+              <MaterialCommunityIcons name="alert" size={24} color={theme.error} />
+              <Text style={[styles.warningText, { color: theme.onErrorContainer }]}>
+                {careTips.toxicityWarning}
+              </Text>
             </View>
           )}
 
           {/* Watering */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="water" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Rega</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="water" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Rega</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Frequencia:</Text> {careTips.watering.frequency}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Quantidade:</Text> {careTips.watering.amount}
             </Text>
             {careTips.watering.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Light */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="white-balance-sunny" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Luz</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLowest }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="white-balance-sunny" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Luz</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Necessidades:</Text> {careTips.light.requirements}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Posicionamento:</Text> {careTips.light.placement}
             </Text>
             {careTips.light.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Soil */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="sprout" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Solo e Substrato</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="sprout" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Solo e Substrato</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Tipo:</Text> {careTips.soil.type}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>pH:</Text> {careTips.soil.ph}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Drenagem:</Text> {careTips.soil.drainage}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Replantio:</Text> {careTips.soil.repotting}
             </Text>
             {careTips.soil.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Fertilizer */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="leaf" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Adubacao</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLowest }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="leaf" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Adubacao</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Tipo:</Text> {careTips.fertilizer.type}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Frequencia:</Text> {careTips.fertilizer.frequency}
             </Text>
             {careTips.fertilizer.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Temperature & Humidity */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="thermometer" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Temperatura e Umidade</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="thermometer" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Temperatura e Umidade</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Temperatura ideal:</Text> {careTips.temperature.ideal}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Umidade:</Text> {careTips.temperature.humidity}
             </Text>
             {careTips.temperature.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Maintenance */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="content-cut" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Manutencao</Text>
-            <Text style={styles.sectionDetail}>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLowest }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="content-cut" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Manutencao</Text>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Poda:</Text> {careTips.maintenance.pruning}
             </Text>
-            <Text style={styles.sectionDetail}>
+            <Text style={[styles.sectionDetail, { color: theme.onSurface }]}>
               <Text style={styles.detailLabel}>Limpeza:</Text> {careTips.maintenance.cleaning}
             </Text>
             {careTips.maintenance.tips.map((tip, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {tip}
+              </Text>
             ))}
           </View>
 
           {/* Problems */}
-          <View style={styles.section}>
-            <MaterialCommunityIcons name="bug" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-            <Text style={styles.sectionTitle}>Problemas Comuns</Text>
-            <Text style={styles.problemCategory}>Pragas:</Text>
+          <View style={[styles.section, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerHigh }]}>
+              <MaterialCommunityIcons name="bug" size={22} color={theme.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Problemas Comuns</Text>
+            <Text style={[styles.problemCategory, { color: theme.onSurface }]}>Pragas:</Text>
             {careTips.problems.pests.map((pest, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {pest}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {pest}
+              </Text>
             ))}
-            <Text style={[styles.problemCategory, { marginTop: Spacing.sm }]}>Doencas:</Text>
+            <Text style={[styles.problemCategory, styles.problemCategorySpaced, { color: theme.onSurface }]}>
+              Doencas:
+            </Text>
             {careTips.problems.diseases.map((disease, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {disease}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {disease}
+              </Text>
             ))}
-            <Text style={[styles.problemCategory, { marginTop: Spacing.sm }]}>Prevencao:</Text>
+            <Text style={[styles.problemCategory, styles.problemCategorySpaced, { color: theme.onSurface }]}>
+              Prevencao:
+            </Text>
             {careTips.problems.prevention.map((prevention, index) => (
-              <Text key={index} style={styles.tipItem}>{"\u2022"} {prevention}</Text>
+              <Text key={index} style={[styles.tipItem, { color: theme.onSurfaceVariant }]}>
+                {"\u2022"} {prevention}
+              </Text>
             ))}
           </View>
 
           {/* Special Tips */}
           {careTips.specialTips.length > 0 && (
-            <View style={[styles.section, styles.specialSection]}>
-              <MaterialCommunityIcons name="star" size={24} color={theme.primary} style={{ marginBottom: Spacing.sm }} />
-              <Text style={styles.sectionTitle}>Dicas Especiais</Text>
+            <View style={[styles.section, { backgroundColor: theme.secondaryContainer }]}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: theme.surfaceContainerLowest }]}>
+                <MaterialCommunityIcons name="star" size={22} color={theme.secondary} />
+              </View>
+              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dicas Especiais</Text>
               {careTips.specialTips.map((tip, index) => (
-                <Text key={index} style={styles.tipItem}>{"\u2022"} {tip}</Text>
+                <Text key={index} style={[styles.tipItem, { color: theme.onSecondaryContainer }]}>
+                  {"\u2022"} {tip}
+                </Text>
               ))}
             </View>
           )}
@@ -379,7 +446,6 @@ export default function Tips() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
   },
   centerContainer: {
     flex: 1,
@@ -387,181 +453,156 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: Spacing.lg,
   },
-  header: {
+  listContent: {
     padding: Spacing.lg,
-    backgroundColor: theme.backgroundSecondary,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
+    paddingTop: Spacing.md,
   },
-  headerTitle: {
-    fontSize: Typography.fontSize["2xl"],
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
-    marginBottom: Spacing.sm,
-  },
-  headerSubtitle: {
-    fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
-  },
-  listContainer: {
-    padding: Spacing.md,
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   plantCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    backgroundColor: theme.backgroundSecondary,
-    borderRadius: BorderRadius.lg,
-    ...Shadows.sm,
+    borderRadius: BorderRadius.xl,
   },
   plantImage: {
-    width: 60,
-    height: 60,
-    borderRadius: BorderRadius.md,
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.lg,
     marginRight: Spacing.md,
   },
   plantInfo: {
     flex: 1,
   },
   plantName: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: theme.text,
-    marginBottom: Spacing.xs,
+    fontFamily: Typography.fontFamily.headlineSemiBold,
+    fontSize: Typography.fontSize.base,
+    marginBottom: 2,
   },
   plantScientific: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.sm,
     fontStyle: "italic",
-    color: theme.textSecondary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.xl,
   },
   emptyTitle: {
+    fontFamily: Typography.fontFamily.headlineBold,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
     marginBottom: Spacing.sm,
-    marginTop: Spacing.md,
     textAlign: "center",
   },
   emptySubtitle: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
-    marginBottom: Spacing.lg,
     textAlign: "center",
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
   },
   loadingText: {
     marginTop: Spacing.sm,
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.base,
-    color: theme.textSecondary,
   },
   analyzingText: {
+    fontFamily: Typography.fontFamily.headlineSemiBold,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.semibold,
-    color: theme.text,
     marginBottom: Spacing.sm,
     textAlign: "center",
   },
   analyzingSubtext: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.sm,
-    color: theme.textSecondary,
     marginBottom: Spacing.xl,
     textAlign: "center",
-    paddingHorizontal: Spacing.xl + Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
   progressBarContainer: {
     width: "80%",
     height: 6,
-    backgroundColor: theme.backgroundTertiary,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.full,
     overflow: "hidden",
     marginBottom: Spacing.md,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: theme.primaryLight,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.full,
   },
   analyzingNote: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.xs,
-    color: theme.textTertiary,
     textAlign: "center",
     fontStyle: "italic",
   },
-  tipsContainer: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xl,
-  },
-  tipsHeader: {
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-  },
-  tipsTitle: {
-    fontSize: Typography.fontSize["3xl"] - 2,
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-  },
-  tipsScientific: {
-    fontSize: Typography.fontSize.lg,
-    fontStyle: "italic",
-    color: theme.textSecondary,
+  tipsContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl + Spacing.lg,
   },
   warningBox: {
-    backgroundColor: "#fff3cd",
     padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.warning,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.lg,
     flexDirection: "row",
     alignItems: "center",
+    gap: Spacing.sm,
   },
   warningText: {
     flex: 1,
+    fontFamily: Typography.fontFamily.bodySemiBold,
     fontSize: Typography.fontSize.sm,
-    color: "#856404",
-    fontWeight: Typography.fontWeight.semibold,
   },
   section: {
-    backgroundColor: theme.backgroundSecondary,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
   },
-  specialSection: {
-    backgroundColor: "#f0f9ff",
-    borderLeftWidth: 4,
-    borderLeftColor: theme.info,
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.lg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: theme.text,
+    fontFamily: Typography.fontFamily.headlineSemiBold,
+    fontSize: Typography.fontSize.lg,
     marginBottom: Spacing.sm,
   },
   sectionDetail: {
-    fontSize: Typography.fontSize.base - 1,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
-    marginBottom: Spacing.sm,
-    color: theme.text,
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.sm,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
+    marginBottom: Spacing.xs,
   },
   detailLabel: {
-    fontWeight: Typography.fontWeight.semibold,
-    color: theme.text,
+    fontFamily: Typography.fontFamily.bodySemiBold,
   },
   tipItem: {
-    fontSize: Typography.fontSize.base - 1,
-    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.sm,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
     marginTop: Spacing.xs,
-    color: theme.textSecondary,
   },
   problemCategory: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    marginTop: Spacing.sm,
+    fontFamily: Typography.fontFamily.bodySemiBold,
+    fontSize: Typography.fontSize.sm,
+    marginTop: Spacing.xs,
     marginBottom: Spacing.xs,
-    color: theme.text,
+  },
+  problemCategorySpaced: {
+    marginTop: Spacing.sm,
   },
   actionButtons: {
     marginTop: Spacing.lg,

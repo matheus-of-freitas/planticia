@@ -1,28 +1,25 @@
 import { Stack, useRouter } from "expo-router";
-import { TouchableOpacity, Text } from "react-native";
-import { AuthProvider, useAuth } from "../context/AuthContext";
+import { AuthProvider } from "../context/AuthContext";
 import { AlertProvider } from "../context/AlertContext";
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as Notifications from "expo-notifications";
 import * as SplashScreenExpo from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
+import {
+  BeVietnamPro_400Regular,
+  BeVietnamPro_500Medium,
+  BeVietnamPro_600SemiBold,
+} from "@expo-google-fonts/be-vietnam-pro";
 import { SplashScreen } from "../components/ui/SplashScreen";
-import { Colors, Typography } from "../constants/theme";
+import { Colors } from "../constants/theme";
 
 SplashScreenExpo.preventAutoHideAsync();
-
-function HeaderRight() {
-  const { signOut, session } = useAuth();
-  const theme = Colors.light;
-
-  if (!session) return null;
-  return (
-    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <Text style={{ color: theme.primary, fontSize: Typography.fontSize.base, fontWeight: Typography.fontWeight.medium }}>
-        Sair
-      </Text>
-    </TouchableOpacity>
-  );
-}
 
 function RootStack() {
   const router = useRouter();
@@ -60,27 +57,14 @@ function RootStack() {
     <Stack
       screenOptions={{
         headerShown: false,
-        headerStyle: {
-          backgroundColor: theme.background,
-        },
-        headerTintColor: theme.text,
-        headerTitleStyle: {
-          fontWeight: Typography.fontWeight.semibold,
-        },
+        contentStyle: { backgroundColor: theme.surface },
       }}
     >
-      <Stack.Screen
-        name="index"
-        options={{
-          headerShown: true,
-          title: "Minhas Plantas",
-          headerRight: () => <HeaderRight />
-        }}
-      />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(plants)" options={{ headerShown: false }} />
-      <Stack.Screen name="(diagnosis)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tips)" options={{ headerShown: false }} />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(plants)" />
+      <Stack.Screen name="(diagnosis)" />
+      <Stack.Screen name="(tips)" />
     </Stack>
   );
 }
@@ -88,6 +72,16 @@ function RootStack() {
 export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [appIsReady, setAppIsReady] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    BeVietnamPro_400Regular,
+    BeVietnamPro_500Medium,
+    BeVietnamPro_600SemiBold,
+  });
 
   useEffect(() => {
     async function prepare() {
@@ -108,7 +102,7 @@ export default function RootLayout() {
     await SplashScreenExpo.hideAsync();
   }, []);
 
-  if (!appIsReady) {
+  if (!appIsReady || !fontsLoaded) {
     return null;
   }
 

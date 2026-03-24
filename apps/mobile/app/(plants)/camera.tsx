@@ -1,7 +1,12 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRef } from "react";
-import { View, Button, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Button } from "../../components/ui/Button";
+import { Colors, Typography, Spacing, BorderRadius } from "../../constants/theme";
+
+const theme = Colors.light;
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -10,19 +15,28 @@ export default function CameraScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.centerContainer}>
-        <Text>Carregando câmera...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.loadingText, { color: theme.onSurfaceVariant }]}>
+          Carregando câmera...
+        </Text>
       </View>
     );
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.title}>Permissão de Câmera Necessária</Text>
-        <Text style={styles.subtitle}>Precisamos de acesso à câmera para tirar fotos das suas plantas</Text>
-        <View style={{ marginTop: 24 }}>
-          <Button title="Conceder Permissão" onPress={requestPermission} />
+      <View style={[styles.centerContainer, { backgroundColor: theme.surface }]}>
+        <View style={[styles.iconCircle, { backgroundColor: theme.secondaryContainer }]}>
+          <MaterialCommunityIcons name="camera-off" size={40} color={theme.secondary} />
+        </View>
+        <Text style={[styles.title, { color: theme.onSurface }]}>
+          Permissão de Câmera Necessária
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.onSurfaceVariant }]}>
+          Precisamos de acesso à câmera para tirar fotos das suas plantas
+        </Text>
+        <View style={styles.buttonWrapper}>
+          <Button title="Conceder Permissão" onPress={requestPermission} variant="primary" />
         </View>
       </View>
     );
@@ -42,8 +56,8 @@ export default function CameraScreen() {
     <View style={{ flex: 1 }}>
       <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back" />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
-          <View style={styles.captureButtonInner} />
+        <TouchableOpacity style={styles.captureButton} onPress={takePhoto} activeOpacity={0.7}>
+          <View style={[styles.captureButtonInner, { backgroundColor: theme.primary }]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -55,19 +69,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: Spacing.xl,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 12,
+    fontFamily: Typography.fontFamily.headlineBold,
+    fontSize: Typography.fontSize.xl,
+    marginBottom: Spacing.sm,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.base,
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+  },
+  loadingText: {
+    fontFamily: Typography.fontFamily.bodyRegular,
+    fontSize: Typography.fontSize.base,
+  },
+  buttonWrapper: {
+    marginTop: Spacing.xl,
   },
   buttonContainer: {
     position: "absolute",
@@ -77,19 +107,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "white",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: theme.surfaceContainerLowest,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 4,
-    borderColor: "#fff",
+    shadowColor: '#181c1a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#007AFF",
+    width: 62,
+    height: 62,
+    borderRadius: 31,
   },
 });

@@ -19,6 +19,7 @@ serve(async (request: Request) => {
 
   const {
     imageUrl,
+    userImageUrl,
     species,
     commonName,
     wateringIntervalDays,
@@ -48,6 +49,7 @@ serve(async (request: Request) => {
       name: commonName || species,
       scientific_name: species,
       image_url: imageUrl,
+      user_image_url: userImageUrl || null,
       watering_interval_days: wateringIntervalDays || 7,
       watering_hour: 11,
       last_watered_at: lastWateredAt || new Date().toISOString(),

@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import OpenAI from "openai";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
+import { fetchStockPhoto } from "../_shared/stockPhoto.ts";
 const PLANTNET_API_KEY = Deno.env.get("PLANTNET_API_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 serve(async (req)=>{
@@ -84,10 +86,18 @@ serve(async (req)=>{
     const confidence = topResult.score || 0;
     // Step 2: Get weather data
     const weather = await weatherPromise;
-    // Step 3: Get care details from OpenAI for the identified species
+    // Step 3: Get care details from OpenAI + stock photo (in parallel)
     const openai = new OpenAI({
       apiKey: OPENAI_API_KEY
     });
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY");
+    const supabase = SUPABASE_URL && SERVICE_ROLE_KEY
+      ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+      : null;
+    const stockPhotoPromise = supabase
+      ? fetchStockPhoto(species, commonName, supabase)
+      : Promise.resolve(null);
     const careCompletion = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: {
@@ -130,13 +140,16 @@ Responda APENAS com um JSON no formato:
     });
     const careText = careCompletion.choices[0]?.message?.content || "{}";
     const careData = JSON.parse(careText);
+    const stockPhoto = await stockPhotoPromise;
     const formattedResult = {
       species,
       commonName: commonName || "Desconhecida",
       confidence,
       wateringIntervalDays: careData.wateringIntervalDays || 3,
       lightPreference: careData.lightPreference || "medium",
-      description: careData.description || "Sem descrição disponível."
+      description: careData.description || "Sem descrição disponível.",
+      stockImageUrl: stockPhoto?.imageUrl ?? null,
+      stockImageAttribution: stockPhoto?.attribution ?? null,
     };
     return new Response(JSON.stringify(formattedResult), {
       headers: {
