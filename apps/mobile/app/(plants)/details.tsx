@@ -13,8 +13,10 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 import { rescheduleWateringNotification } from "../../libs/notifications";
 import { deletePlant } from "../../libs/deletePlant";
+import { uploadImage } from "../../libs/uploadImage";
 import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../../libs/config";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -47,6 +49,7 @@ export default function PlantDetails() {
   const [editHourModalVisible, setEditHourModalVisible] = useState(false);
   const [editingHour, setEditingHour] = useState("11");
   const [deleting, setDeleting] = useState(false);
+  const [updatingImage, setUpdatingImage] = useState(false);
   const router = useRouter();
   const { showAlert } = useAlert();
 
@@ -201,6 +204,49 @@ export default function PlantDetails() {
     });
   }
 
+  async function updateImageFromUri(uri: string) {
+    if (!plant) return;
+    setUpdatingImage(true);
+    try {
+      const newUrl = await uploadImage(uri);
+      const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ plantId: plant.id, updates: { image_url: newUrl, user_image_url: newUrl } }),
+      });
+      const json = await response.json();
+      if (!response.ok || json.error) throw new Error(json.error || "Falha ao atualizar imagem");
+      setPlant((prev) => prev ? { ...prev, image_url: newUrl } : null);
+    } catch (err: any) {
+      showAlert({ type: 'error', title: 'Erro', message: err.message || 'Falha ao atualizar imagem.' });
+    } finally {
+      setUpdatingImage(false);
+    }
+  }
+
+  function handleChangeImage() {
+    showAlert({
+      type: 'confirm',
+      title: 'Alterar Foto',
+      message: 'Como deseja escolher a nova foto?',
+      confirmText: 'Tirar Foto',
+      cancelText: 'Galeria',
+      onConfirm: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          showAlert({ type: 'warning', title: 'Permissao Necessaria', message: 'Permissao de camera e necessaria.' });
+          return;
+        }
+        const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 });
+        if (!result.canceled) updateImageFromUri(result.assets[0].uri);
+      },
+      onCancel: async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 0.8 });
+        if (!result.canceled) updateImageFromUri(result.assets[0].uri);
+      },
+    });
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -223,7 +269,7 @@ export default function PlantDetails() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Hero image with gradient overlay */}
-        <View style={styles.heroContainer}>
+        <TouchableOpacity activeOpacity={0.9} onPress={handleChangeImage} disabled={updatingImage} style={styles.heroContainer}>
           {plant.image_url && (
             <Image source={{ uri: plant.image_url }} style={styles.heroImage} resizeMode="cover" />
           )}
@@ -235,7 +281,15 @@ export default function PlantDetails() {
               <Text style={styles.heroScientific}>{plant.scientific_name}</Text>
             </View>
           </View>
-        </View>
+          {/* Edit badge */}
+          <View style={styles.editImageBadge}>
+            {updatingImage ? (
+              <ActivityIndicator color="#ffffff" size={16} />
+            ) : (
+              <MaterialCommunityIcons name="camera-outline" size={16} color="#ffffff" />
+            )}
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.contentPadding}>
           {/* Action buttons */}
@@ -418,6 +472,7 @@ const styles = StyleSheet.create({
   heroTextContainer: { padding: Spacing.lg, paddingBottom: Spacing.xl },
   heroName: { fontFamily: Typography.fontFamily.headlineBold, fontSize: Typography.fontSize['3xl'], color: '#ffffff', marginBottom: Spacing.xs },
   heroScientific: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.base, color: 'rgba(255,255,255,0.8)', fontStyle: 'italic' },
+  editImageBadge: { position: 'absolute', bottom: Spacing.xl + 4, right: Spacing.lg, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: BorderRadius.full, width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
 
   contentPadding: { padding: Spacing.lg },
 

@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const UNSPLASH_API = "https://api.unsplash.com";
-const STOCK_PHOTO_MATCHER_VERSION = "3";
+const STOCK_PHOTO_MATCHER_VERSION = "4";
 const UNSPLASH_RESULTS_PER_PAGE = "8";
 const MIN_ACCEPTABLE_MATCH_SCORE = 70;
 const GENERIC_TOKENS = new Set([
@@ -107,21 +107,25 @@ export async function fetchStockPhoto(
       };
     }
 
-    // 2. Search Unsplash — try scientific name first
+    // 2. Search Unsplash — try Portuguese common name first (better results)
     const normalizedScientificName = normalizeForMatch(scientificName);
     const normalizedCommonName = normalizeForMatch(commonName);
-    let match = await searchUnsplash(scientificName, unsplashKey, {
-      scientificName: normalizedScientificName,
-      commonName: normalizedCommonName,
-      allowCommonNameMatches: false,
-    });
+    let match: SearchMatch | null = null;
 
-    // 3. Fallback to common name
-    if (!match && normalizedCommonName) {
+    if (normalizedCommonName) {
       match = await searchUnsplash(commonName, unsplashKey, {
         scientificName: normalizedScientificName,
         commonName: normalizedCommonName,
         allowCommonNameMatches: true,
+      });
+    }
+
+    // 3. Fallback to scientific name
+    if (!match) {
+      match = await searchUnsplash(scientificName, unsplashKey, {
+        scientificName: normalizedScientificName,
+        commonName: normalizedCommonName,
+        allowCommonNameMatches: false,
       });
     }
 
@@ -172,7 +176,7 @@ async function searchUnsplash(
   },
 ): Promise<SearchMatch | null> {
   const url = new URL(`${UNSPLASH_API}/search/photos`);
-  url.searchParams.set("query", `${query} plant`);
+  url.searchParams.set("query", `${query} planta`);
   url.searchParams.set("per_page", UNSPLASH_RESULTS_PER_PAGE);
   url.searchParams.set("orientation", "squarish");
   url.searchParams.set("content_filter", "high");

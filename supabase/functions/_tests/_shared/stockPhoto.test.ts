@@ -68,7 +68,7 @@ Deno.test("returns cached data on cache hit with image_url", async () => {
     attribution: "Foto por Jane no Unsplash",
     photographer_name: "Jane",
     photographer_url: "https://unsplash.com/@jane",
-    matcher_version: "3",
+    matcher_version: "4",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -87,7 +87,7 @@ Deno.test("returns null on negative cache hit (empty image_url)", async () => {
     attribution: null,
     photographer_name: null,
     photographer_url: null,
-    matcher_version: "3",
+    matcher_version: "4",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -101,7 +101,7 @@ Deno.test("returns null when supabase throws a DB error", async () => {
   assertEquals(result, null);
 });
 
-Deno.test("accepts a scientific-name metadata match from Unsplash", async () => {
+Deno.test("common name search finds best match from Unsplash candidates", async () => {
   const originalFetch = globalThis.fetch;
   try {
     const unsplashPayload = {
@@ -149,8 +149,9 @@ Deno.test("accepts a scientific-name metadata match from Unsplash", async () => 
     // Verify a positive cache upsert was attempted
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
-    assertEquals(upserted.matched_query, "Mentha spicata");
-    assertEquals(upserted.matcher_version, "3");
+    // Common name is searched first now, so matched_query is the common name
+    assertEquals(upserted.matched_query, "Mint");
+    assertEquals(upserted.matcher_version, "4");
     assert(typeof upserted.match_score === "number");
     assert((upserted.match_score as number) >= 70);
   } finally {
@@ -158,21 +159,22 @@ Deno.test("accepts a scientific-name metadata match from Unsplash", async () => 
   }
 });
 
-Deno.test("falls back to common name when sparse Unsplash metadata has strong token overlap", async () => {
+Deno.test("falls back to scientific name when common name search finds nothing", async () => {
   const originalFetch = globalThis.fetch;
   try {
     let fetchCount = 0;
     globalThis.fetch = async () => {
       fetchCount += 1;
+      // First call (common name "Garden Mint") returns empty
       if (fetchCount === 1) {
         return new Response(JSON.stringify({ results: [] }), { status: 200 });
       }
-
+      // Second call (scientific name "Mentha spicata") returns a match
       return new Response(JSON.stringify({
         results: [
           {
-            description: "Fresh mint on a wooden table",
-            tags: [{ title: "kitchen herb" }, { title: "mint" }],
+            description: "Mentha spicata in an herb garden",
+            tags: [{ title: "mentha spicata" }, { title: "spearmint" }],
             urls: { regular: "https://images.unsplash.com/photo-mint" },
             user: {
               name: "Mint Person",
@@ -190,8 +192,8 @@ Deno.test("falls back to common name when sparse Unsplash metadata has strong to
     assertEquals(result!.imageUrl, "https://images.unsplash.com/photo-mint&w=800&q=80");
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
-    assertEquals(upserted.matched_query, "Garden Mint");
-    assertEquals(upserted.matcher_version, "3");
+    assertEquals(upserted.matched_query, "Mentha spicata");
+    assertEquals(upserted.matcher_version, "4");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -251,7 +253,7 @@ Deno.test("rejects unrelated Unsplash results and negative-caches the miss", asy
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
     assertEquals(upserted.image_url, "");
-    assertEquals(upserted.matcher_version, "3");
+    assertEquals(upserted.matcher_version, "4");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -315,7 +317,7 @@ Deno.test("Unsplash API error triggers negative cache upsert and returns null", 
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
     assertEquals(upserted.image_url, "");
-    assertEquals(upserted.matcher_version, "3");
+    assertEquals(upserted.matcher_version, "4");
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -89,10 +89,6 @@ export async function handler(req: Request): Promise<Response> {
         ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
         : null;
 
-    const stockPhotoPromise = supabase
-      ? fetchStockPhoto(species, commonName, supabase)
-      : Promise.resolve(null);
-
     const careCompletion = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
@@ -120,6 +116,7 @@ export async function handler(req: Request): Promise<Response> {
 
 Responda APENAS com um JSON no formato:
 {
+  "commonNamePt": "nome popular da planta em português brasileiro",
   "wateringIntervalDays": <número inteiro>,
   "lightPreference": "descrição da preferência de luz",
   "description": "Descrição dos cuidados em português brasileiro"
@@ -134,11 +131,18 @@ Responda APENAS com um JSON no formato:
 
     const careText = careCompletion.choices[0]?.message?.content || "{}";
     const careData = JSON.parse(careText);
-    const stockPhoto = await stockPhotoPromise;
+
+    // Prefer OpenAI's Portuguese name over PlantNet's (which may be empty or non-Portuguese)
+    const resolvedCommonName = careData.commonNamePt || commonName || "Desconhecida";
+
+    // Fetch stock photo using the resolved Portuguese common name
+    const stockPhoto = supabase
+      ? await fetchStockPhoto(species, resolvedCommonName, supabase)
+      : null;
 
     const formattedResult = {
       species,
-      commonName: commonName || "Desconhecida",
+      commonName: resolvedCommonName,
       confidence,
       wateringIntervalDays: careData.wateringIntervalDays || 3,
       lightPreference: careData.lightPreference || "medium",
