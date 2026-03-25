@@ -1,6 +1,5 @@
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-const UNSPLASH_ACCESS_KEY = Deno.env.get("UNSPLASH_ACCESS_KEY");
 const UNSPLASH_API = "https://api.unsplash.com";
 
 interface StockPhotoResult {
@@ -20,7 +19,8 @@ export async function fetchStockPhoto(
   commonName: string,
   supabase: SupabaseClient,
 ): Promise<StockPhotoResult | null> {
-  if (!UNSPLASH_ACCESS_KEY) {
+  const unsplashKey = Deno.env.get("UNSPLASH_ACCESS_KEY");
+  if (!unsplashKey) {
     console.warn("UNSPLASH_ACCESS_KEY not set, skipping stock photo fetch");
     return null;
   }
@@ -47,11 +47,11 @@ export async function fetchStockPhoto(
     }
 
     // 2. Search Unsplash — try scientific name first
-    let photo = await searchUnsplash(scientificName);
+    let photo = await searchUnsplash(scientificName, unsplashKey);
 
     // 3. Fallback to common name
     if (!photo && commonName) {
-      photo = await searchUnsplash(commonName);
+      photo = await searchUnsplash(commonName, unsplashKey);
     }
 
     // 4. Cache result (positive or negative)
@@ -85,7 +85,7 @@ export async function fetchStockPhoto(
   }
 }
 
-async function searchUnsplash(query: string): Promise<StockPhotoResult | null> {
+async function searchUnsplash(query: string, accessKey: string): Promise<StockPhotoResult | null> {
   const url = new URL(`${UNSPLASH_API}/search/photos`);
   url.searchParams.set("query", `${query} plant`);
   url.searchParams.set("per_page", "1");
@@ -94,7 +94,7 @@ async function searchUnsplash(query: string): Promise<StockPhotoResult | null> {
 
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+      Authorization: `Client-ID ${accessKey}`,
     },
   });
 

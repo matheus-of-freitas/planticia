@@ -54,10 +54,7 @@ Deno.test("identify - missing env vars returns 500", async () => {
   }
 });
 
-Deno.test("identify - empty Bearer token still reaches env var check", async () => {
-  try { Deno.env.delete("SUPABASE_URL"); } catch { /* ignore */ }
-  try { Deno.env.delete("SUPABASE_ANON_KEY"); } catch { /* ignore */ }
-
+Deno.test("identify - empty Bearer token returns 401", async () => {
   const req = new Request("https://test.supabase.co/functions/v1/identify", {
     method: "POST",
     headers: {
@@ -67,13 +64,8 @@ Deno.test("identify - empty Bearer token still reaches env var check", async () 
     body: JSON.stringify({ image_base64: "abc123" }),
   });
 
-  try {
-    const res = await handler(req);
-    // With "Bearer " prefix present but no env vars, should get 500
-    assertEquals(res.status, 500);
-    const body = await res.json();
-    assertEquals(body.error, "Missing Supabase env vars");
-  } finally {
-    // No env vars to restore
-  }
+  const res = await handler(req);
+  // Empty token still has Bearer prefix, but getAuthenticatedUser creates a
+  // Supabase client that rejects the empty token → 401
+  assertEquals(res.status, 401);
 });

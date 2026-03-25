@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";

@@ -5,7 +5,7 @@
     "experimentalDecorators": false
   },
   "imports": {
-    "supabase": "https://esm.sh/@supabase/supabase-js@2",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.39.7",
     "openai": "npm:openai@^4"
   },
   "tasks": {

@@ -110,6 +110,10 @@ describe("notifications", () => {
     });
 
     it("handles time < 60s edge case by adding 1 day", async () => {
+      // Freeze time to 10:00 AM so that wateringHour=11 is 1h in the future after +1 day
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-03-25T10:00:00"));
+
       Notifications.getPermissionsAsync.mockResolvedValueOnce({
         status: "granted",
       });
@@ -133,6 +137,8 @@ describe("notifications", () => {
       const callArgs =
         Notifications.scheduleNotificationAsync.mock.calls[0][0];
       expect(callArgs.trigger.seconds).toBeGreaterThan(0);
+
+      jest.useRealTimers();
     });
 
     it("throws when permission is denied", async () => {
