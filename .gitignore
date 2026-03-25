@@ -55,3 +55,4 @@ web-build/
 # Supabase
 supabase/.branches
 supabase/.temp
+supabase/functions/deno.lock
