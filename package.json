@@ -10,7 +10,9 @@
   "scripts": {
     "dev:mobile": "turbo run dev --filter=@planticia/mobile",
     "dev:functions": "supabase functions serve",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:functions": "cd supabase/functions && deno task test"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.97",

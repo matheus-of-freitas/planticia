@@ -7,5 +7,9 @@
   "imports": {
     "supabase": "https://esm.sh/@supabase/supabase-js@2",
     "openai": "npm:openai@^4"
+  },
+  "tasks": {
+    "test": "deno test --allow-env --allow-net=0.0.0.0 _tests/",
+    "test:coverage": "deno test --allow-env --allow-net=0.0.0.0 _tests/ --coverage=coverage/ && deno coverage coverage/"
   }
 }
