@@ -3,6 +3,7 @@
 Deno.env.set("UNSPLASH_ACCESS_KEY", "test-key");
 
 import {
+  assert,
   assertEquals,
   assertExists,
 } from "https://deno.land/std@0.168.0/testing/asserts.ts";
@@ -67,6 +68,7 @@ Deno.test("returns cached data on cache hit with image_url", async () => {
     attribution: "Foto por Jane no Unsplash",
     photographer_name: "Jane",
     photographer_url: "https://unsplash.com/@jane",
+    matcher_version: "3",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -85,6 +87,7 @@ Deno.test("returns null on negative cache hit (empty image_url)", async () => {
     attribution: null,
     photographer_name: null,
     photographer_url: null,
+    matcher_version: "3",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -98,12 +101,25 @@ Deno.test("returns null when supabase throws a DB error", async () => {
   assertEquals(result, null);
 });
 
-Deno.test("happy path: cache miss, Unsplash returns a photo", async () => {
+Deno.test("accepts a scientific-name metadata match from Unsplash", async () => {
   const originalFetch = globalThis.fetch;
   try {
     const unsplashPayload = {
       results: [
         {
+          description: "Fresh garden leaves",
+          alt_description: "close-up foliage",
+          tags: [{ title: "herbs" }],
+          urls: { regular: "https://images.unsplash.com/photo-wrong" },
+          user: {
+            name: "Wrong Match",
+            links: { html: "https://unsplash.com/@wrong" },
+          },
+        },
+        {
+          description: "Mentha spicata in an herb garden",
+          alt_description: "Mentha spicata leaves",
+          tags: [{ title: "mentha spicata" }, { title: "mint" }],
           urls: { regular: "https://images.unsplash.com/photo-xyz" },
           user: {
             name: "John Doe",
@@ -119,7 +135,7 @@ Deno.test("happy path: cache miss, Unsplash returns a photo", async () => {
 
     const { client, upsertCalls } = createMockSb({ data: null, error: null });
 
-    const result = await fetchStockPhoto("Rosa gallica", "Rosa", client);
+    const result = await fetchStockPhoto("Mentha spicata", "Mint", client);
 
     assertExists(result);
     assertEquals(
@@ -131,6 +147,147 @@ Deno.test("happy path: cache miss, Unsplash returns a photo", async () => {
     assertEquals(result!.photographerUrl, "https://unsplash.com/@johndoe");
 
     // Verify a positive cache upsert was attempted
+    assertEquals(upsertCalls.length >= 1, true);
+    const upserted = upsertCalls[0] as Record<string, unknown>;
+    assertEquals(upserted.matched_query, "Mentha spicata");
+    assertEquals(upserted.matcher_version, "3");
+    assert(typeof upserted.match_score === "number");
+    assert((upserted.match_score as number) >= 70);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("falls back to common name when sparse Unsplash metadata has strong token overlap", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    let fetchCount = 0;
+    globalThis.fetch = async () => {
+      fetchCount += 1;
+      if (fetchCount === 1) {
+        return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      }
+
+      return new Response(JSON.stringify({
+        results: [
+          {
+            description: "Fresh mint on a wooden table",
+            tags: [{ title: "kitchen herb" }, { title: "mint" }],
+            urls: { regular: "https://images.unsplash.com/photo-mint" },
+            user: {
+              name: "Mint Person",
+              links: { html: "https://unsplash.com/@mintperson" },
+            },
+          },
+        ],
+      }), { status: 200 });
+    };
+
+    const { client, upsertCalls } = createMockSb({ data: null, error: null });
+    const result = await fetchStockPhoto("Mentha spicata", "Garden Mint", client);
+
+    assertExists(result);
+    assertEquals(result!.imageUrl, "https://images.unsplash.com/photo-mint&w=800&q=80");
+    assertEquals(upsertCalls.length >= 1, true);
+    const upserted = upsertCalls[0] as Record<string, unknown>;
+    assertEquals(upserted.matched_query, "Garden Mint");
+    assertEquals(upserted.matcher_version, "3");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("accepts genus signal plus common-name overlap for sparse metadata", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({
+        results: [
+          {
+            description: "Fresh mint leaves from the market",
+            tags: [{ title: "mentha" }, { title: "herb" }],
+            urls: { regular: "https://images.unsplash.com/photo-spearmint" },
+            user: {
+              name: "Herb Person",
+              links: { html: "https://unsplash.com/@herbperson" },
+            },
+          },
+        ],
+      }), { status: 200 });
+
+    const { client } = createMockSb({ data: null, error: null });
+    const result = await fetchStockPhoto("Mentha spicata", "Mint", client);
+
+    assertExists(result);
+    assertEquals(result!.imageUrl, "https://images.unsplash.com/photo-spearmint&w=800&q=80");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("rejects unrelated Unsplash results and negative-caches the miss", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({
+        results: [
+          {
+            description: "Generic tropical plant",
+            alt_description: "green leaves in the sun",
+            tags: [{ title: "plant" }, { title: "leaf" }],
+            urls: { regular: "https://images.unsplash.com/photo-generic" },
+            user: {
+              name: "Generic Person",
+              links: { html: "https://unsplash.com/@generic" },
+            },
+          },
+        ],
+      }), { status: 200 });
+
+    const { client, upsertCalls } = createMockSb({ data: null, error: null });
+    const result = await fetchStockPhoto("Mentha spicata", "Mint", client);
+
+    assertEquals(result, null);
+    assertEquals(upsertCalls.length >= 1, true);
+    const upserted = upsertCalls[0] as Record<string, unknown>;
+    assertEquals(upserted.image_url, "");
+    assertEquals(upserted.matcher_version, "3");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("stale cache rows are ignored and revalidated with the current matcher", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({
+        results: [
+          {
+            description: "Rosa gallica bloom",
+            tags: [{ title: "rosa gallica" }],
+            urls: { regular: "https://images.unsplash.com/photo-rose" },
+            user: {
+              name: "Rose Person",
+              links: { html: "https://unsplash.com/@roseperson" },
+            },
+          },
+        ],
+      }), { status: 200 });
+
+    const staleCachedRow = {
+      image_url: "https://images.unsplash.com/photo-stale",
+      attribution: "Foto por Old no Unsplash",
+      photographer_name: "Old",
+      photographer_url: "https://unsplash.com/@old",
+      matcher_version: "2",
+    };
+
+    const { client, upsertCalls } = createMockSb({ data: staleCachedRow, error: null });
+    const result = await fetchStockPhoto("Rosa gallica", "Rose", client);
+
+    assertExists(result);
+    assertEquals(result!.imageUrl, "https://images.unsplash.com/photo-rose&w=800&q=80");
     assertEquals(upsertCalls.length >= 1, true);
   } finally {
     globalThis.fetch = originalFetch;
@@ -158,6 +315,7 @@ Deno.test("Unsplash API error triggers negative cache upsert and returns null", 
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
     assertEquals(upserted.image_url, "");
+    assertEquals(upserted.matcher_version, "3");
   } finally {
     globalThis.fetch = originalFetch;
   }
