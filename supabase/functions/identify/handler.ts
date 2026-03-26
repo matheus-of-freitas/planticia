@@ -1,8 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
-import { fetchStockPhoto } from "../_shared/stockPhoto.ts";
 
 export async function handler(req: Request): Promise<Response> {
   try {
@@ -79,15 +77,8 @@ export async function handler(req: Request): Promise<Response> {
     // Step 2: Get weather data
     const weather = await weatherPromise;
 
-    // Step 3: Get care details from OpenAI + stock photo (in parallel)
+    // Step 3: Get care details from OpenAI
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY");
-    const supabase =
-      SUPABASE_URL && SERVICE_ROLE_KEY
-        ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-        : null;
 
     const careCompletion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -135,11 +126,6 @@ Responda APENAS com um JSON no formato:
     // Prefer OpenAI's Portuguese name over PlantNet's (which may be empty or non-Portuguese)
     const resolvedCommonName = careData.commonNamePt || commonName || "Desconhecida";
 
-    // Fetch stock photo using the resolved Portuguese common name
-    const stockPhoto = supabase
-      ? await fetchStockPhoto(species, resolvedCommonName, supabase)
-      : null;
-
     const formattedResult = {
       species,
       commonName: resolvedCommonName,
@@ -147,8 +133,6 @@ Responda APENAS com um JSON no formato:
       wateringIntervalDays: careData.wateringIntervalDays || 3,
       lightPreference: careData.lightPreference || "medium",
       description: careData.description || "Sem descrição disponível.",
-      stockImageUrl: stockPhoto?.imageUrl ?? null,
-      stockImageAttribution: stockPhoto?.attribution ?? null,
     };
 
     return new Response(JSON.stringify(formattedResult), {

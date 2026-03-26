@@ -212,7 +212,7 @@ export default function PlantDetails() {
       const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/update-plant`, {
         method: "POST",
         headers: await getAuthHeaders(),
-        body: JSON.stringify({ plantId: plant.id, updates: { image_url: newUrl, user_image_url: newUrl } }),
+        body: JSON.stringify({ plantId: plant.id, updates: { image_url: newUrl } }),
       });
       const json = await response.json();
       if (!response.ok || json.error) throw new Error(json.error || "Falha ao atualizar imagem");

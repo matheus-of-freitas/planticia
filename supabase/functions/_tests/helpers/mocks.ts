@@ -179,7 +179,6 @@ export function setTestEnv() {
   Deno.env.set("SERVICE_ROLE_KEY", "test-service-role-key");
   Deno.env.set("OPENAI_API_KEY", "test-openai-key");
   Deno.env.set("PLANTNET_API_KEY", "test-plantnet-key");
-  Deno.env.set("UNSPLASH_ACCESS_KEY", "test-unsplash-key");
 }
 
 /**
@@ -188,7 +187,7 @@ export function setTestEnv() {
 export function clearTestEnv() {
   const keys = [
     "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERVICE_ROLE_KEY",
-    "OPENAI_API_KEY", "PLANTNET_API_KEY", "UNSPLASH_ACCESS_KEY",
+    "OPENAI_API_KEY", "PLANTNET_API_KEY",
   ];
   for (const key of keys) {
     try {

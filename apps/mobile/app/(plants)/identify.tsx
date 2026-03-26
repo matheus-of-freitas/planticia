@@ -103,8 +103,7 @@ export default function Identify() {
       const lastWateredISO = lastWateredAt ? new Date(lastWateredAt).toISOString() : new Date().toISOString();
 
       const plant = await savePlant({
-        imageUrl: result.stockImageUrl || userPublicUrl,
-        userImageUrl: userPublicUrl,
+        imageUrl: userPublicUrl,
         species: result.species,
         commonName: result.commonName,
         wateringIntervalDays: result.wateringIntervalDays,
@@ -223,13 +222,7 @@ export default function Identify() {
     <View style={styles.container}>
       <TopAppBar onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Image source={{ uri: result.stockImageUrl || imageUri }} style={styles.plantImage} />
-
-        {result.stockImageAttribution && (
-          <Text style={[styles.attributionText, { color: theme.outlineVariant }]}>
-            {result.stockImageAttribution}
-          </Text>
-        )}
+        <Image source={{ uri: imageUri }} style={styles.plantImage} />
 
         {/* Name card */}
         <Card style={styles.nameCard}>
