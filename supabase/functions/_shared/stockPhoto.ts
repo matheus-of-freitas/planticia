@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const UNSPLASH_API = "https://api.unsplash.com";
-const STOCK_PHOTO_MATCHER_VERSION = "5";
+const STOCK_PHOTO_MATCHER_VERSION = "6";
 
 interface StockPhotoResult {
   imageUrl: string;
@@ -110,6 +110,7 @@ async function searchUnsplash(
   url.searchParams.set("query", query);
   url.searchParams.set("per_page", "1");
   url.searchParams.set("orientation", "squarish");
+  url.searchParams.set("order_by", "relevant");
   url.searchParams.set("content_filter", "high");
 
   const res = await fetch(url.toString(), {

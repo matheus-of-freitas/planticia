@@ -55,7 +55,7 @@ Deno.test("returns cached data on cache hit", async () => {
     attribution: "Foto por Jane no Unsplash",
     photographer_name: "Jane",
     photographer_url: "https://unsplash.com/@jane",
-    matcher_version: "5",
+    matcher_version: "6",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -74,7 +74,7 @@ Deno.test("returns null on negative cache hit (empty image_url)", async () => {
     attribution: null,
     photographer_name: null,
     photographer_url: null,
-    matcher_version: "5",
+    matcher_version: "6",
   };
   const { client } = createMockSb({ data: cachedRow, error: null });
 
@@ -113,7 +113,7 @@ Deno.test("takes the first Unsplash result (trusts search relevance)", async () 
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
     assertEquals(upserted.matched_query, "Hortelã planta");
-    assertEquals(upserted.matcher_version, "5");
+    assertEquals(upserted.matcher_version, "6");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -189,7 +189,7 @@ Deno.test("Unsplash API error triggers negative cache and returns null", async (
     assertEquals(upsertCalls.length >= 1, true);
     const upserted = upsertCalls[0] as Record<string, unknown>;
     assertEquals(upserted.image_url, "");
-    assertEquals(upserted.matcher_version, "5");
+    assertEquals(upserted.matcher_version, "6");
   } finally {
     globalThis.fetch = originalFetch;
   }
