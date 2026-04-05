@@ -50,6 +50,6 @@ export function Card({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.md,
   },
 });

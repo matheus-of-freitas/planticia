@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet, Dimensions } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from "../libs/supabaseClient";
 import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../libs/config";
@@ -21,10 +21,6 @@ interface Plant {
   watering_interval_days?: number;
   last_watered_at?: string;
 }
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const CARD_GAP = Spacing.sm;
-const CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - CARD_GAP) / 2;
 
 function getNextWateringText(plant: Plant): string | null {
   if (!plant.watering_interval_days || !plant.last_watered_at) return null;
@@ -150,8 +146,6 @@ export default function Index() {
       <FlatList
         data={plants}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
         ListHeaderComponent={
           <EditorialHeader
             label="CATALOGO"
@@ -228,16 +222,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
-  columnWrapper: {
-    gap: CARD_GAP,
-  },
   header: {
     marginTop: Spacing.sm,
     marginBottom: Spacing.lg,
   },
   cardWrapper: {
-    width: CARD_WIDTH,
-    marginBottom: CARD_GAP,
+    width: '100%',
+    marginBottom: Spacing.md,
   },
   plantCard: {
     overflow: 'hidden',
@@ -245,8 +236,8 @@ const styles = StyleSheet.create({
   plantImage: {
     width: '100%',
     aspectRatio: 0.85,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
+    borderTopLeftRadius: BorderRadius.md,
+    borderTopRightRadius: BorderRadius.md,
   },
   plantImagePlaceholder: {
     alignItems: "center" as const,
