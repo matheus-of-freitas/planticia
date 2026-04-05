@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { jsonResponse } from "./response.ts";
 
 /**
  * Extracts and verifies the user's JWT from the Authorization header.
@@ -10,10 +11,7 @@ export async function getAuthenticatedUser(
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return {
-      error: new Response(
-        JSON.stringify({ error: "Missing or invalid Authorization header" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      ),
+      error: jsonResponse({ error: "Missing or invalid Authorization header" }, 401),
     };
   }
 
@@ -24,10 +22,7 @@ export async function getAuthenticatedUser(
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return {
-      error: new Response(
-        JSON.stringify({ error: "Missing Supabase env vars" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      ),
+      error: jsonResponse({ error: "Missing Supabase env vars" }, 500),
     };
   }
 
@@ -43,10 +38,7 @@ export async function getAuthenticatedUser(
 
   if (error || !user) {
     return {
-      error: new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      ),
+      error: jsonResponse({ error: "Unauthorized" }, 401),
     };
   }
 

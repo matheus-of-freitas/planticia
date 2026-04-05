@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/response.ts";
 
 export function getQuarter(date: Date): number {
   return Math.floor(date.getMonth() / 3) + 1;
@@ -17,10 +18,7 @@ export async function handler(req: Request): Promise<Response> {
     const scientificName = url.searchParams.get("scientific_name");
 
     if (!plantName && !scientificName) {
-      return new Response(JSON.stringify({ error: "Missing plant_name or scientific_name" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing plant_name or scientific_name" }, 400);
     }
 
     const plantInfo = scientificName || plantName || "planta desconhecida";
@@ -30,10 +28,7 @@ export async function handler(req: Request): Promise<Response> {
     const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing Supabase env vars" }, 500);
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -60,8 +55,7 @@ export async function handler(req: Request): Promise<Response> {
           await supabase.from("care_tips").delete().eq("scientific_name", scientificName);
         } else {
           console.log("Returning cached care tips for:", scientificName);
-          return new Response(
-            JSON.stringify({
+          return jsonResponse({
               plantName: cachedTips.plant_name,
               scientificName: cachedTips.scientific_name,
               watering: cachedTips.watering,
@@ -74,9 +68,7 @@ export async function handler(req: Request): Promise<Response> {
               specialTips: cachedTips.special_tips,
               petSafe: cachedTips.pet_safe,
               toxicityWarning: cachedTips.toxicity_warning,
-            }),
-            { headers: { "Content-Type": "application/json" } }
-          );
+            });
         }
       }
     }
@@ -155,15 +147,10 @@ Responda APENAS com um JSON no formato:
       }
     }
 
-    return new Response(JSON.stringify(tipsData), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse(tipsData);
   } catch (err) {
     console.error("Error full details:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: errorMessage }, 500);
   }
 }

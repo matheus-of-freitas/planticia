@@ -10,6 +10,8 @@ interface TopAppBarProps {
   rightIcon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   onRightPress?: () => void;
   showBack?: boolean;
+  transparent?: boolean;
+  iconColor?: string;
 }
 
 export function TopAppBar({
@@ -18,29 +20,32 @@ export function TopAppBar({
   rightIcon,
   onRightPress,
   showBack = true,
+  transparent = false,
+  iconColor,
 }: TopAppBarProps) {
   const theme = Colors.light;
   const insets = useSafeAreaInsets();
+  const resolvedIconColor = iconColor || theme.onSurface;
 
   return (
     <View style={[styles.container, {
       paddingTop: insets.top,
-      backgroundColor: GlassEffect.background,
+      backgroundColor: transparent ? 'transparent' : GlassEffect.background,
     }]}>
       <View style={styles.content}>
         {showBack && onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.iconButton} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={theme.onSurface} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={resolvedIconColor} />
           </TouchableOpacity>
         ) : (
           <View style={styles.iconButton} />
         )}
 
-        <Text style={[styles.title, { color: theme.onSurface }]}>{title}</Text>
+        <Text style={[styles.title, { color: transparent ? resolvedIconColor : theme.onSurface }]}>{title}</Text>
 
         {rightIcon && onRightPress ? (
           <TouchableOpacity onPress={onRightPress} style={styles.iconButton} activeOpacity={0.7}>
-            <MaterialCommunityIcons name={rightIcon} size={24} color={theme.onSurface} />
+            <MaterialCommunityIcons name={rightIcon} size={24} color={resolvedIconColor} />
           </TouchableOpacity>
         ) : (
           <View style={styles.iconButton} />

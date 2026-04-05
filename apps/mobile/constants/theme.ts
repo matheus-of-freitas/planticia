@@ -277,7 +277,7 @@ export const Gradients = {
   biophilic: ['#173809', '#2d4f1e'] as const,
   biophilicLight: ['#2d4f1e', '#4a6549'] as const,
   surfaceFade: ['rgba(23,56,9,0)', 'rgba(23,56,9,0.6)'] as const,
-  heroOverlay: ['rgba(23,56,9,0)', 'rgba(23,56,9,0.4)'] as const,
+  heroOverlay: ['rgba(23,56,9,0.35)', 'rgba(23,56,9,0)', 'rgba(23,56,9,0.4)'] as const,
 };
 
 // Glassmorphism config

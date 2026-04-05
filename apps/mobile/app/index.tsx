@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, StyleSheet, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from "../libs/supabaseClient";
 import { SUPABASE_FUNCTIONS_URL, getAuthHeaders } from "../libs/config";
@@ -16,9 +16,29 @@ import { Colors, Typography, Spacing, BorderRadius } from "../constants/theme";
 interface Plant {
   id: string;
   name: string;
-  species?: string;
+  scientific_name?: string;
   image_url: string;
-  watering_frequency_days?: number;
+  watering_interval_days?: number;
+  last_watered_at?: string;
+}
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CARD_GAP = Spacing.sm;
+const CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - CARD_GAP) / 2;
+
+function getNextWateringText(plant: Plant): string | null {
+  if (!plant.watering_interval_days || !plant.last_watered_at) return null;
+  const lastWatered = new Date(plant.last_watered_at);
+  const nextWatering = new Date(lastWatered);
+  nextWatering.setDate(lastWatered.getDate() + plant.watering_interval_days);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = new Date(nextWatering);
+  next.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return "Regar hoje!";
+  if (diffDays === 1) return "Regar amanhã";
+  return `Regar em ${diffDays} dias`;
 }
 
 export default function Index() {
@@ -130,6 +150,8 @@ export default function Index() {
       <FlatList
         data={plants}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
         ListHeaderComponent={
           <EditorialHeader
             label="CATALOGO"
@@ -147,49 +169,47 @@ export default function Index() {
           />
         }
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.cardWrapper}
-            onPress={() =>
-              router.push({
-                pathname: "/(plants)/details",
-                params: { plantId: item.id },
-              })
-            }
-            activeOpacity={0.7}
-          >
-            <Card style={styles.plantCard} noPadding>
-              {item.image_url ? (
-                <Image
-                  source={{ uri: item.image_url }}
-                  style={styles.plantImage}
-                />
-              ) : (
-                <View style={[styles.plantImage, styles.plantImagePlaceholder, { backgroundColor: theme.surfaceContainerLow }]}>
-                  <MaterialCommunityIcons name="flower" size={40} color={theme.outlineVariant} />
-                </View>
-              )}
-              <View style={styles.plantInfo}>
-                <Text style={[styles.plantName, { color: theme.onSurface }]} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {item.species && (
-                  <Text style={[styles.plantSpecies, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
-                    {item.species}
-                  </Text>
-                )}
-                {item.watering_frequency_days && (
-                  <View style={[styles.badge, { backgroundColor: theme.secondaryContainer }]}>
-                    <MaterialCommunityIcons name="water-outline" size={12} color={theme.onSecondaryContainer} />
-                    <Text style={[styles.badgeText, { color: theme.onSecondaryContainer }]}>
-                      A cada {item.watering_frequency_days}d
-                    </Text>
+        renderItem={({ item }) => {
+          const wateringText = getNextWateringText(item);
+          return (
+            <TouchableOpacity
+              style={styles.cardWrapper}
+              onPress={() =>
+                router.push({
+                  pathname: "/(plants)/details",
+                  params: { plantId: item.id },
+                })
+              }
+              activeOpacity={0.7}
+            >
+              <Card style={styles.plantCard} noPadding>
+                {item.image_url ? (
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.plantImage}
+                  />
+                ) : (
+                  <View style={[styles.plantImage, styles.plantImagePlaceholder, { backgroundColor: theme.surfaceContainerLow }]}>
+                    <MaterialCommunityIcons name="flower" size={32} color={theme.outlineVariant} />
                   </View>
                 )}
-              </View>
-            </Card>
-          </TouchableOpacity>
-        )}
+                <View style={styles.plantInfo}>
+                  <Text style={[styles.plantName, { color: theme.onSurface }]} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {wateringText && (
+                    <View style={styles.wateringRow}>
+                      <MaterialCommunityIcons name="water-outline" size={12} color={theme.onSurfaceVariant} />
+                      <Text style={[styles.wateringText, { color: theme.onSurfaceVariant }]} numberOfLines={1}>
+                        {wateringText}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Card>
+            </TouchableOpacity>
+          );
+        }}
       />
 
       <FAB
@@ -208,20 +228,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
+  columnWrapper: {
+    gap: CARD_GAP,
+  },
   header: {
     marginTop: Spacing.sm,
     marginBottom: Spacing.lg,
   },
   cardWrapper: {
-    width: '100%',
-    marginBottom: Spacing.md,
+    width: CARD_WIDTH,
+    marginBottom: CARD_GAP,
   },
   plantCard: {
     overflow: 'hidden',
   },
   plantImage: {
     width: '100%',
-    height: 160,
+    aspectRatio: 0.85,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
   },
@@ -230,30 +253,21 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
   },
   plantInfo: {
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
   plantName: {
     fontFamily: Typography.fontFamily.headlineSemiBold,
-    fontSize: Typography.fontSize.base,
+    fontSize: Typography.fontSize.sm,
     marginBottom: 2,
   },
-  plantSpecies: {
-    fontFamily: Typography.fontFamily.bodyRegular,
-    fontSize: Typography.fontSize.xs,
-    fontStyle: 'italic',
-    marginBottom: Spacing.sm,
-  },
-  badge: {
+  wateringRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
+    gap: 3,
   },
-  badgeText: {
-    fontFamily: Typography.fontFamily.bodyMedium,
+  wateringText: {
+    fontFamily: Typography.fontFamily.bodyRegular,
     fontSize: Typography.fontSize.xs - 1,
   },
 });

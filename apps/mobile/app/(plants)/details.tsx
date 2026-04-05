@@ -275,7 +275,7 @@ export default function PlantDetails() {
           )}
           <LinearGradient colors={[...Gradients.heroOverlay]} style={styles.heroGradient} />
           <View style={styles.heroOverlayContent}>
-            <TopAppBar onBack={() => router.back()} title="" />
+            <TopAppBar onBack={() => router.back()} title="" transparent iconColor="#ffffff" />
             <View style={styles.heroTextContainer}>
               <Text style={styles.heroName}>{plant.name}</Text>
               <Text style={styles.heroScientific}>{plant.scientific_name}</Text>

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/response.ts";
 
 export async function handler(req: Request): Promise<Response> {
   try {
@@ -9,10 +10,7 @@ export async function handler(req: Request): Promise<Response> {
     const { image_base64, mime_type, plant_name, scientific_name } = await req.json();
 
     if (!image_base64) {
-      return new Response(JSON.stringify({ error: "Missing image_base64" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing image_base64" }, 400);
     }
 
     const mimeType = mime_type || "image/jpeg";
@@ -105,15 +103,10 @@ Responda APENAS com um JSON no formato:
       additionalNotes: diagnosisData.additionalNotes || "",
     };
 
-    return new Response(JSON.stringify(formattedResult), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse(formattedResult);
   } catch (err) {
     console.error("Error full details:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: errorMessage }, 500);
   }
 }

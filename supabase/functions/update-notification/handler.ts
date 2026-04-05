@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/response.ts";
 
 export async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
@@ -13,27 +14,18 @@ export async function handler(req: Request): Promise<Response> {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Invalid JSON" }, 400);
   }
 
   const { plantId, notificationId } = body;
   if (!plantId || !notificationId) {
-    return new Response(JSON.stringify({ error: "Missing plantId or notificationId" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Missing plantId or notificationId" }, 400);
   }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Missing Supabase env vars" }, 500);
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -47,13 +39,8 @@ export async function handler(req: Request): Promise<Response> {
     .eq("user_id", auth.userId);
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: error.message }, 500);
   }
 
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  return jsonResponse({ success: true });
 }

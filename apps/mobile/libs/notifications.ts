@@ -76,10 +76,9 @@ export async function scheduleWateringNotification(
   nextWateringDate.setHours(wateringHour, 0, 0, 0);
   const now = new Date();
 
-  let secondsUntilNotification = Math.floor((nextWateringDate.getTime() - now.getTime()) / 1000);
-  if (secondsUntilNotification < 60) {
+  // If the target time is in the past or within the next minute, push to tomorrow
+  if (nextWateringDate.getTime() - now.getTime() < 60 * 1000) {
     nextWateringDate.setDate(nextWateringDate.getDate() + 1);
-    secondsUntilNotification = Math.floor((nextWateringDate.getTime() - now.getTime()) / 1000);
   }
 
   const notificationId = await Notifications.scheduleNotificationAsync({
@@ -91,15 +90,19 @@ export async function scheduleWateringNotification(
       priority: Notifications.AndroidNotificationPriority.HIGH,
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: secondsUntilNotification,
-      repeats: true,
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      year: nextWateringDate.getFullYear(),
+      month: nextWateringDate.getMonth() + 1,
+      day: nextWateringDate.getDate(),
+      hour: wateringHour,
+      minute: 0,
+      repeats: false,
       channelId: Platform.OS === "android" ? "watering-reminders" : undefined,
     },
   });
 
   console.log(
-    `Scheduled notification for ${plantName} in ${secondsUntilNotification}s (ID: ${notificationId})`
+    `Scheduled notification for ${plantName} at ${nextWateringDate.toISOString()} (ID: ${notificationId})`
   );
   return notificationId;
 }

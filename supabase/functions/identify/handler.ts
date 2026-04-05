@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
+import { jsonResponse } from "../_shared/response.ts";
 
 export async function handler(req: Request): Promise<Response> {
   try {
@@ -9,10 +10,7 @@ export async function handler(req: Request): Promise<Response> {
 
     const { image_base64, mime_type } = await req.json();
     if (!image_base64) {
-      return new Response(JSON.stringify({ error: "Missing image_base64" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing image_base64" }, 400);
     }
 
     const mimeType = mime_type || "image/jpeg";
@@ -35,39 +33,30 @@ export async function handler(req: Request): Promise<Response> {
     if (!plantnetRes.ok) {
       const remaining = plantnetRes.headers.get("x-remaining-identification-requests");
       if (remaining === "0") {
-        return new Response(
-          JSON.stringify({ error: "Limite diário de identificações atingido. Tente novamente amanhã." }),
-          { status: 429, headers: { "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ error: "Limite diário de identificações atingido. Tente novamente amanhã." }, 429);
       }
       console.error("PlantNet error:", plantnetRes.status, await plantnetRes.text());
-      return new Response(
-        JSON.stringify({
+      return jsonResponse({
           confidence: 0,
           species: "",
           commonName: "",
           wateringIntervalDays: 3,
           lightPreference: "",
           description: "Não foi possível identificar a planta.",
-        }),
-        { headers: { "Content-Type": "application/json" } }
-      );
+        });
     }
 
     const plantnetData = await plantnetRes.json();
     const topResult = plantnetData.results?.[0];
     if (!topResult) {
-      return new Response(
-        JSON.stringify({
+      return jsonResponse({
           confidence: 0,
           species: "",
           commonName: "",
           wateringIntervalDays: 3,
           lightPreference: "",
           description: "Nenhuma planta identificada na imagem.",
-        }),
-        { headers: { "Content-Type": "application/json" } }
-      );
+        });
     }
 
     const species = topResult.species?.scientificNameWithoutAuthor || topResult.species?.scientificName || "";
@@ -135,15 +124,10 @@ Responda APENAS com um JSON no formato:
       description: careData.description || "Sem descrição disponível.",
     };
 
-    return new Response(JSON.stringify(formattedResult), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse(formattedResult);
   } catch (err) {
     console.error("Error full details:", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: errorMessage }, 500);
   }
 }

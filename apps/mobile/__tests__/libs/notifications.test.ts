@@ -81,7 +81,10 @@ describe("notifications", () => {
   });
 
   describe("scheduleWateringNotification", () => {
-    it("returns notification ID on success", async () => {
+    it("returns notification ID on success with CALENDAR trigger", async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-03-25T10:00:00"));
+
       Notifications.getPermissionsAsync.mockResolvedValueOnce({
         status: "granted",
       });
@@ -98,21 +101,24 @@ describe("notifications", () => {
       );
 
       expect(result).toBe("notif-abc");
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.objectContaining({
-            title: expect.any(String),
-            body: expect.stringContaining("Rosa"),
-            data: { plantId: "plant-1" },
-          }),
-        })
-      );
+      const callArgs = Notifications.scheduleNotificationAsync.mock.calls[0][0];
+      expect(callArgs.content.body).toContain("Rosa");
+      expect(callArgs.content.data).toEqual({ plantId: "plant-1" });
+      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.CALENDAR);
+      expect(callArgs.trigger.repeats).toBe(false);
+      expect(callArgs.trigger.hour).toBe(11);
+      expect(callArgs.trigger.minute).toBe(0);
+      // 3 days from March 25 = March 28
+      expect(callArgs.trigger.year).toBe(2026);
+      expect(callArgs.trigger.month).toBe(3);
+      expect(callArgs.trigger.day).toBe(28);
+
+      jest.useRealTimers();
     });
 
-    it("handles time < 60s edge case by adding 1 day", async () => {
-      // Freeze time to 10:00 AM so that wateringHour=11 is 1h in the future after +1 day
+    it("handles past date by pushing to next day", async () => {
       jest.useFakeTimers();
-      jest.setSystemTime(new Date("2026-03-25T10:00:00"));
+      jest.setSystemTime(new Date("2026-03-25T12:00:00"));
 
       Notifications.getPermissionsAsync.mockResolvedValueOnce({
         status: "granted",
@@ -136,7 +142,10 @@ describe("notifications", () => {
       expect(result).toBe("notif-edge");
       const callArgs =
         Notifications.scheduleNotificationAsync.mock.calls[0][0];
-      expect(callArgs.trigger.seconds).toBeGreaterThan(0);
+      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.CALENDAR);
+      // March 24 + 0 days = March 24 at 11am → in the past → +1 day = March 25 at 11am
+      expect(callArgs.trigger.day).toBe(25);
+      expect(callArgs.trigger.hour).toBe(11);
 
       jest.useRealTimers();
     });
