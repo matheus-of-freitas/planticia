@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@^2.39.7";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
 import { jsonResponse } from "../_shared/response.ts";
 

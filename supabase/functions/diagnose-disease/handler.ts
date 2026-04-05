@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI from "npm:openai@^4";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
 import { jsonResponse } from "../_shared/response.ts";
 

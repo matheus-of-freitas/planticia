@@ -1,5 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { createClient } from "npm:@supabase/supabase-js@^2.39.7";
+import OpenAI from "npm:openai@^4";
 import { getRioWeather } from "../_shared/weather.ts";
 import { getAuthenticatedUser } from "../_shared/auth.ts";
 import { jsonResponse } from "../_shared/response.ts";
