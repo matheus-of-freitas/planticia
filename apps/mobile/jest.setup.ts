@@ -11,7 +11,7 @@ jest.mock("expo-notifications", () => ({
   getAllScheduledNotificationsAsync: jest.fn().mockResolvedValue([]),
   AndroidImportance: { HIGH: 4 },
   AndroidNotificationPriority: { HIGH: "high" },
-  SchedulableTriggerInputTypes: { TIME_INTERVAL: 1, CALENDAR: 2 },
+  SchedulableTriggerInputTypes: { TIME_INTERVAL: "timeInterval", CALENDAR: "calendar", DATE: "date" },
 }));
 
 // ── expo-image-manipulator ──

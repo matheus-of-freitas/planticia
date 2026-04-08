@@ -76,8 +76,8 @@ export async function scheduleWateringNotification(
   nextWateringDate.setHours(wateringHour, 0, 0, 0);
   const now = new Date();
 
-  // If the target time is in the past or within the next minute, push to tomorrow
-  if (nextWateringDate.getTime() - now.getTime() < 60 * 1000) {
+  // Keep advancing by 1 day until the target time is in the future
+  while (nextWateringDate.getTime() - now.getTime() < 60 * 1000) {
     nextWateringDate.setDate(nextWateringDate.getDate() + 1);
   }
 
@@ -90,13 +90,8 @@ export async function scheduleWateringNotification(
       priority: Notifications.AndroidNotificationPriority.HIGH,
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
-      year: nextWateringDate.getFullYear(),
-      month: nextWateringDate.getMonth() + 1,
-      day: nextWateringDate.getDate(),
-      hour: wateringHour,
-      minute: 0,
-      repeats: false,
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: nextWateringDate.getTime(),
       channelId: Platform.OS === "android" ? "watering-reminders" : undefined,
     },
   });

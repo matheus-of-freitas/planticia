@@ -81,7 +81,7 @@ describe("notifications", () => {
   });
 
   describe("scheduleWateringNotification", () => {
-    it("returns notification ID on success with CALENDAR trigger", async () => {
+    it("returns notification ID on success with DATE trigger", async () => {
       jest.useFakeTimers();
       jest.setSystemTime(new Date("2026-03-25T10:00:00"));
 
@@ -104,19 +104,19 @@ describe("notifications", () => {
       const callArgs = Notifications.scheduleNotificationAsync.mock.calls[0][0];
       expect(callArgs.content.body).toContain("Rosa");
       expect(callArgs.content.data).toEqual({ plantId: "plant-1" });
-      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.CALENDAR);
-      expect(callArgs.trigger.repeats).toBe(false);
-      expect(callArgs.trigger.hour).toBe(11);
-      expect(callArgs.trigger.minute).toBe(0);
-      // 3 days from March 25 = March 28
-      expect(callArgs.trigger.year).toBe(2026);
-      expect(callArgs.trigger.month).toBe(3);
-      expect(callArgs.trigger.day).toBe(28);
+      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.DATE);
+      // 3 days from March 25 at 11:00 = March 28 at 11:00
+      const scheduledDate = new Date(callArgs.trigger.date);
+      expect(scheduledDate.getFullYear()).toBe(2026);
+      expect(scheduledDate.getMonth()).toBe(2); // 0-indexed: March = 2
+      expect(scheduledDate.getDate()).toBe(28);
+      expect(scheduledDate.getHours()).toBe(11);
+      expect(scheduledDate.getMinutes()).toBe(0);
 
       jest.useRealTimers();
     });
 
-    it("handles past date by pushing to next day", async () => {
+    it("handles past date by advancing until future", async () => {
       jest.useFakeTimers();
       jest.setSystemTime(new Date("2026-03-25T12:00:00"));
 
@@ -142,10 +142,44 @@ describe("notifications", () => {
       expect(result).toBe("notif-edge");
       const callArgs =
         Notifications.scheduleNotificationAsync.mock.calls[0][0];
-      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.CALENDAR);
-      // March 24 + 0 days = March 24 at 11am → in the past → +1 day = March 25 at 11am
-      expect(callArgs.trigger.day).toBe(25);
-      expect(callArgs.trigger.hour).toBe(11);
+      expect(callArgs.trigger.type).toBe(Notifications.SchedulableTriggerInputTypes.DATE);
+      // March 24 + 0 days = March 24 at 11am → past → +1 = March 25 at 11am → still past (12pm) → +1 = March 26 at 11am
+      const scheduledDate = new Date(callArgs.trigger.date);
+      expect(scheduledDate.getDate()).toBe(26);
+      expect(scheduledDate.getHours()).toBe(11);
+
+      jest.useRealTimers();
+    });
+
+    it("handles multi-day overdue by advancing until future", async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-03-30T14:00:00"));
+
+      Notifications.getPermissionsAsync.mockResolvedValueOnce({
+        status: "granted",
+      });
+      Notifications.scheduleNotificationAsync.mockResolvedValueOnce(
+        "notif-overdue"
+      );
+
+      // Last watered March 20, interval 3 days → next = March 23 at 11am
+      // Now is March 30 at 14:00 → 7 days overdue
+      const result = await scheduleWateringNotification(
+        "plant-overdue",
+        "Jiboia",
+        3,
+        "2026-03-20T08:00:00",
+        11
+      );
+
+      expect(result).toBe("notif-overdue");
+      const callArgs =
+        Notifications.scheduleNotificationAsync.mock.calls[0][0];
+      const scheduledDate = new Date(callArgs.trigger.date);
+      // Must be in the future: March 31 at 11am (first 11am after March 30 14:00)
+      expect(scheduledDate.getDate()).toBe(31);
+      expect(scheduledDate.getHours()).toBe(11);
+      expect(scheduledDate.getTime()).toBeGreaterThan(new Date("2026-03-30T14:00:00").getTime());
 
       jest.useRealTimers();
     });

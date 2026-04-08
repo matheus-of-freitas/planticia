@@ -53,17 +53,27 @@ export default function PlantDetails() {
   const router = useRouter();
   const { showAlert } = useAlert();
 
-  function isTodayWateringDay() {
-    if (!plant?.last_watered_at || !plant?.watering_interval_days) return false;
+  function isWateringNeeded() {
+    if (!plant?.watering_interval_days) return false;
+    if (!plant?.last_watered_at) return true; // never watered
     const lastWatered = new Date(plant.last_watered_at);
     const nextWatering = new Date(lastWatered);
     nextWatering.setDate(lastWatered.getDate() + plant.watering_interval_days);
     const today = new Date();
-    return (
-      nextWatering.getFullYear() === today.getFullYear() &&
-      nextWatering.getMonth() === today.getMonth() &&
-      nextWatering.getDate() === today.getDate()
-    );
+    today.setHours(0, 0, 0, 0);
+    nextWatering.setHours(0, 0, 0, 0);
+    return today >= nextWatering; // due today OR overdue
+  }
+
+  function daysUntilNextWatering(): number {
+    if (!plant?.last_watered_at || !plant?.watering_interval_days) return 0;
+    const lastWatered = new Date(plant.last_watered_at);
+    const nextWatering = new Date(lastWatered);
+    nextWatering.setDate(lastWatered.getDate() + plant.watering_interval_days);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    nextWatering.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.ceil((nextWatering.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
   async function handleMarkWateredNow() {
@@ -336,26 +346,26 @@ export default function PlantDetails() {
                 </TouchableOpacity>
               </View>
               {plant.last_watered_at && (
-                <View style={styles.lastWateredRow}>
-                  <Text style={styles.lastWateredText}>
-                    Ultima rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
-                  </Text>
-                  {isTodayWateringDay() && (
-                    <TouchableOpacity
-                      onPress={handleMarkWateredNow}
-                      disabled={saving}
-                      style={[styles.waterButton, { backgroundColor: theme.primaryContainer }, saving && { opacity: 0.7 }]}
-                      accessibilityLabel="Reguei agora"
-                    >
-                      {saving ? (
-                        <ActivityIndicator color={theme.onPrimaryContainer} size={18} />
-                      ) : (
-                        <MaterialCommunityIcons name="water" size={20} color={theme.onPrimaryContainer} />
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
+                <Text style={styles.lastWateredText}>
+                  Ultima rega: {new Date(plant.last_watered_at).toLocaleDateString("pt-BR")}
+                </Text>
               )}
+              {isWateringNeeded() ? (
+                <Button
+                  title={saving ? "Salvando..." : "Reguei agora"}
+                  onPress={handleMarkWateredNow}
+                  disabled={saving}
+                  variant="primary"
+                  size="md"
+                  icon={<MaterialCommunityIcons name="water" size={18} color={theme.onPrimary} />}
+                  fullWidth
+                  style={{ marginTop: Spacing.sm }}
+                />
+              ) : plant.last_watered_at && plant.watering_interval_days ? (
+                <Text style={[styles.lastWateredText, { color: theme.primary, marginTop: Spacing.xs }]}>
+                  Proxima rega em {daysUntilNextWatering()} {daysUntilNextWatering() === 1 ? 'dia' : 'dias'}
+                </Text>
+              ) : null}
             </Card>
 
             {/* Light card */}
@@ -492,9 +502,7 @@ const styles = StyleSheet.create({
   wateringRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: Spacing.sm },
   pillButton: { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm + 2, borderRadius: BorderRadius.full, marginHorizontal: 2 },
   pillButtonText: { fontFamily: Typography.fontFamily.bodySemiBold, fontSize: Typography.fontSize.sm },
-  lastWateredRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
-  lastWateredText: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, color: theme.onSurfaceVariant, flex: 1 },
-  waterButton: { marginLeft: Spacing.md, borderRadius: BorderRadius.full, padding: Spacing.sm, justifyContent: 'center', alignItems: 'center' },
+  lastWateredText: { fontFamily: Typography.fontFamily.bodyRegular, fontSize: Typography.fontSize.sm, color: theme.onSurfaceVariant },
 
   // Description
   descriptionCard: { marginBottom: Spacing.md },
